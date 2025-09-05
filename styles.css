@@ -1,0 +1,101 @@
+
+*{box-sizing:border-box}
+:root{
+  --bg:#0a0a0a;
+  --bg2:#141414;
+  --grad1:#0a0a0a;
+  --grad2:#2b2b2b;
+  --metal:#19ff8f;
+  --metal-dim:#0fb46a;
+  --text:#f2f2f2;
+  --muted:#bdbdbd;
+  --accent:#33ffaa;
+  --card:#121212;
+  --shadow:0 10px 30px rgba(0,0,0,.6);
+}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial;
+  color:var(--text);
+  background:
+    radial-gradient(1200px 800px at 0% 0%, #1b1b1b 0%, rgba(0,0,0,0) 60%),
+    linear-gradient(180deg, var(--grad1), var(--grad2));
+}
+a{color:var(--accent);text-decoration:none}
+header{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 18px;background:linear-gradient(180deg,#0d0d0d,#050505);
+  border-bottom:1px solid #222; position:sticky; top:0; z-index:10
+}
+header img.logo{height:34px;filter:drop-shadow(0 2px 6px rgba(25,255,143,.25))}
+header .title{font-weight:700;letter-spacing:.6px}
+.container{max-width:1100px;margin:24px auto;padding:0 16px}
+.card{
+  background:linear-gradient(180deg,#0f0f0f,#0a0a0a);
+  border:1px solid #232323;border-radius:16px; box-shadow:var(--shadow);
+  padding:18px; margin-bottom:18px
+}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.col{flex:1 1 240px}
+input,select,button{
+  width:100%; padding:12px 14px; border-radius:12px;
+  border:1px solid #2a2a2a; background:#131313; color:var(--text);
+  outline:0; font-size:15px;
+}
+input::placeholder{color:#777}
+button{
+  background:linear-gradient(180deg,#1a1a1a,#0f0f0f);
+  border:1px solid #2f2f2f; cursor:pointer; font-weight:600;
+  transition:transform .05s ease, box-shadow .2s ease, border-color .2s ease;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.04), 0 6px 16px rgba(0,0,0,.4)
+}
+button:hover{border-color:#3a3a3a; box-shadow:0 6px 18px rgba(0,0,0,.55), inset 0 0 0 1px rgba(25,255,143,.18)}
+button.metal{
+  background:linear-gradient(180deg,#1d1d1d,#111); border-color:#3a3a3a
+}
+.small{font-size:12px;color:var(--muted)}
+.footer{padding:28px;text-align:center;color:#aaa;border-top:1px solid #222;margin-top:40px}
+.badge{display:inline-block; padding:4px 8px; border-radius:8px; font-size:12px; font-weight:700; border:1px solid #3a3a3a}
+.badge-yellow{background:#3c3100;border-color:#5a4d00;color:#ffd54a}
+.badge-green{background:#0d2b18;border-color:#174a2b;color:#92ff9c}
+.badge-pink{background:#3c0e2b;border-color:#5a1440;color:#ffa0e0}
+.badge-azul{background:#0b2844;border-color:#0f3c66;color:#6ec3ff}
+.badge-verde{background:#0b3d1a;border-color:#145a2a;color:#66ff8c}
+.badge-vermelha{background:#441010;border-color:#7a1d1d;color:#ff8282}
+.badge-roxa{background:#2b0b44;border-color:#4c1380;color:#d1a6ff}
+.badge-prata{background:#2a2a2a;border-color:#4a4a4a;color:#cfcfcf}
+.time-blue{background:#0b2844;border-color:#0f3c66;color:#6ec3ff}
+.time-orange{background:#4d2c00;border-color:#7a4600;color:#ffcc80}
+.time-navy{background:#05122b;border-color:#0a2452;color:#9db8ff}
+.toolbar{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px
+}
+.kpis{display:flex;gap:10px;flex-wrap:wrap}
+.kpi{background:#0f0f0f;border:1px solid #202020;border-radius:12px;padding:12px 14px;min-width:140px}
+.kpi .label{font-size:12px;color:#bdbdbd}
+.kpi .value{font-size:18px;font-weight:800}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{border-bottom:1px solid #242424;padding:10px 8px;text-align:left;font-size:14px}
+.table tr:hover{background:#0e0e0e}
+.table thead th{color:#9bf5c4;border-bottom:1px solid #2a2a2a}
+.steel{
+  background:linear-gradient(180deg,#1a1a1a,#0f0f0f);
+  border:1px solid #3a3a3a; box-shadow:inset 0 0 0 1px rgba(255,255,255,.04);
+}
+/* Export menu (hover) */
+.export-wrap{position:relative;display:inline-block}
+.export-btn{padding:10px 14px;border-radius:10px}
+.export-menu{
+  position:absolute; top:105%; right:0; min-width:220px; display:none;
+  background:#0b0b0b; border:1px solid #2f2f2f; border-radius:12px; box-shadow:var(--shadow); z-index:5
+}
+.export-wrap:hover .export-menu{display:block}
+.export-menu button{width:100%; text-align:left; padding:10px 12px; background:transparent; border:0}
+.export-menu button:hover{background:#111;color:#9bf5c4}
+.collapsible{cursor:pointer}
+.hidden{display:none}
+.scroll-x{overflow-x:auto;max-width:100%}
+.logo-left{display:flex;align-items:center;gap:8px}
+.right-box{margin-left:auto}
+.top-actions{display:flex;gap:8px;align-items:center}

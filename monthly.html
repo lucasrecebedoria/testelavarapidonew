@@ -1,83 +1,113 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Relatório Mensal</title>
-  <link rel="icon" href="assets/favicon.ico"/>
-  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="icon" href="icon.ico">
+  <link rel="stylesheet" href="styles.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.9.0/pptxgen.bundle.js"></script>
 </head>
 <body>
-<header class="header">
-  <img src="assets/logo.png"/>
-  <div class="spacer"></div>
-  <a class="btn" href="app.html">Voltar</a>
-  <button id="btnPDF" class="btn">Salvar PDF</button>
-  <button id="btnExcelMensal" class="btn silver">Salvar Excel</button>
-</header>
-<main class="container">
-  <div class="card" id="mensalBox">
-    <div class="controls">
-      <h2 style="margin-right:auto">Relatório Mensal</h2>
-      <input id="mes" type="month" class="input"/>
-      <input id="filtroPrefixo" class="input" placeholder="Filtrar prefixo (ex.: 55001)" style="max-width:240px"/>
-      <a class="btn" href="monthly_chart.html">Abrir gráfico mensal</a>
-    </div>
-    <div class="scroll">
-      <table class="table" id="tabMensal">
-        <thead><tr><th>Prefixo</th><th>Qtd no mês</th><th>Dias lavados</th></tr></thead>
-        <tbody></tbody>
-      </table>
+<header>
+  <div class="logo-left">
+    <img src="logo.png" class="logo">
+    <div class="title">Relatório Mensal</div>
+  </div>
+  <div class="top-actions">
+    <a href="app.html"><button class="steel">Voltar</button></a>
+    <a href="monthly_chart.html"><button class="steel">Abrir gráfico mensal</button></a>
+  </div>
+  <div class="right-box">
+    <div class="export-wrap">
+      <button class="export-btn steel">Exportar</button>
+      <div class="export-menu">
+        <button id="pdfMensal">Salvar PDF</button>
+        <button id="excelMensal">Salvar Excel</button>
+        <button id="pptMensal">Exportar PowerPoint</button>
+      </div>
     </div>
   </div>
-</main>
-<footer class="footer">Developed by Lucas L Custodio, V1</footer>
+</header>
+<div class="container">
+  <div class="card">
+    <div class="row">
+      <div class="col"><label>Filtro por prefixo</label><input id="filtroPrefixo"></div>
+      <div class="col"><label>Mês</label><input type="month" id="mes"></div>
+    </div>
+    <table class="table" id="tabelaMensal">
+      <thead><tr><th>Prefixo</th><th>Qtd no mês</th><th>Dias</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+<div class="footer">Developed by Lucas L Custodio, V1</div>
+
 <script type="module">
-  import { db, requireAuth, prefixBadgeClass, formatDateBR } from './js/firebase.js';
-  import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-  await requireAuth();
-  const $=(q)=>document.querySelector(q);
-  function defaultMonth(){ const d=new Date(); return d.toISOString().slice(0,7); }
+import { db, collection, getDocs, query, where, orderBy } from "./scripts/firebase.js";
+import { prefixBadge, monthRangeFrom, brDate, downloadFileName } from "./scripts/common.js";
 
-  async function load(){
-    const [y,m]=($('#mes').value||defaultMonth()).split('-').map(Number);
-    const first=new Date(y, m-1, 1); const last=new Date(y,m,0,23,59,59,999);
-    const qy=query(collection(db,'lavagens'), where('createdAt','>=',first), where('createdAt','<=',last));
-    const snap=await getDocs(qy);
-    const map={};
-    snap.forEach(s=>{ const d=s.data(); const p=d.prefixo; const dia=(d.dataRef?.toDate?.()||d.createdAt?.toDate?.()||new Date()); (map[p]=map[p]||{p, qtd:0, dias:[]}).qtd++; map[p].dias.push(formatDateBR(dia)); });
-    const arr=Object.values(map).sort((a,b)=>a.p.localeCompare(b.p));
-    const tb=$('#tabMensal tbody'); tb.innerHTML='';
-    arr.forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td><span class="badge ${prefixBadgeClass(r.p)}">${r.p}</span></td><td>${r.qtd}</td><td>${[...new Set(r.dias)].join(', ')}</td>`; tb.appendChild(tr); });
-  }
+document.getElementById('mes').value = new Date().toISOString().slice(0,7);
 
-  function filterPrefix(){
-    const txt = ($('#filtroPrefixo').value||'').toLowerCase();
-    const rows = Array.from(document.querySelectorAll('#tabMensal tbody tr'));
-    rows.forEach(tr=>{
-      tr.style.display = tr.innerText.toLowerCase().includes(txt) ? '' : 'none';
-    });
+async function loadMonth(){
+  const ym = document.getElementById('mes').value;
+  const [y,m] = ym.split('-').map(Number);
+  const start = new Date(y, m-1, 1);
+  const end = new Date(y, m, 0, 23,59,59,999);
+  const q = query(collection(db,"relatorios"), where("data",">=",start), where("data","<=",end));
+  const snap = await getDocs(q);
+  const map = new Map();
+  for(const d of snap.docs){
+    const r = d.data();
+    const key = r.prefixo;
+    if(!map.has(key)) map.set(key, {count:0, dias: new Set()});
+    const v = map.get(key);
+    v.count++;
+    const dt = r.data.toDate ? r.data.toDate() : r.data;
+    v.dias.add(brDate(dt));
   }
-
-  async function exportPDF(){
-    const { jsPDF } = window.jspdf; const el=document.getElementById('mensalBox'); const canvas=await html2canvas(el);
-    const pdf=new jsPDF('p','mm','a4'); const w=pdf.internal.pageSize.getWidth(); const h=(canvas.height*w)/canvas.width;
-    pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,w,h); pdf.save('relatorio_mensal.pdf');
-  }
-  function exportExcel(){
-    const tbl = document.getElementById('tabMensal');
-    const wb = XLSX.utils.table_to_book(tbl, {sheet: "Mensal"});
-    XLSX.writeFile(wb, 'relatorio_mensal.xlsx');
-  }
-
-  document.getElementById('mes').value=defaultMonth(); load();
-  document.getElementById('mes').addEventListener('change', load);
-  document.getElementById('btnPDF').addEventListener('click', exportPDF);
-  document.getElementById('btnExcelMensal').addEventListener('click', exportExcel);
-  document.getElementById('filtroPrefixo').addEventListener('input', filterPrefix);
+  const tbody = document.querySelector('#tabelaMensal tbody');
+  tbody.innerHTML = "";
+  [...map.entries()].sort((a,b)=>a[0]-b[0]).forEach(([p,info])=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${prefixBadge(p)}</td><td>${info.count}</td><td>${[...info.dias].join(", ")}</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('filtroPrefixo').oninput = ()=>{
+    const v = document.getElementById('filtroPrefixo').value.trim();
+    [...tbody.children].forEach(tr=> tr.style.display = tr.children[0].innerText.includes(v) ? "" : "none");
+  };
+}
+function exportExcel(){
+  const t = document.getElementById('tabelaMensal');
+  const wb = XLSX.utils.table_to_book(t,{sheet:"Mensal"});
+  XLSX.writeFile(wb, downloadFileName('mensal')+".xlsx");
+}
+function exportPDF(){
+  const { jsPDF } = window.jspdf;
+  const docPdf = new jsPDF('l','pt','a4');
+  docPdf.text("Relatório Mensal", 40, 40);
+  const t = document.getElementById('tabelaMensal');
+  const rows = [...t.querySelectorAll('tr')].map(tr => [...tr.children].map(td=>td.innerText));
+  let y=70; rows.forEach(r=>{ docPdf.text(r.join(" | "), 40, y); y+=18; if(y>530){ docPdf.addPage(); y=40; }});
+  docPdf.save(downloadFileName('mensal')+".pdf");
+}
+function exportPPT(){
+  const pptx = new PptxGenJS();
+  let slide = pptx.addSlide();
+  slide.addText("Relatório Mensal", {x:0.5,y:0.3,fontSize:22,bold:true});
+  const t = document.getElementById('tabelaMensal');
+  const rows = [...t.querySelectorAll('tr')].map(tr => [...tr.children].map(td=>td.innerText));
+  slide.addTable(rows, {x:0.5,y:1,w:9});
+  pptx.writeFile(downloadFileName('mensal')+".pptx");
+}
+document.getElementById('pdfMensal').onclick = exportPDF;
+document.getElementById('excelMensal').onclick = exportExcel;
+document.getElementById('pptMensal').onclick = exportPPT;
+document.getElementById('mes').addEventListener('change', loadMonth);
+await loadMonth();
 </script>
 </body>
 </html>

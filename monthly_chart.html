@@ -1,48 +1,106 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Gráfico Mensal (Semana)</title>
-  <link rel="icon" href="assets/favicon.ico"/>
-  <link rel="stylesheet" href="css/style.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gráfico Mensal</title>
+  <link rel="icon" href="icon.ico"><link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.9.0/pptxgen.bundle.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-<header class="header">
-  <img src="assets/logo.png"/>
-  <div class="spacer"></div>
-  <a class="btn" href="monthly.html">Voltar ao Relatório Mensal</a>
-</header>
-<main class="container">
-  <div class="card">
-    <h2>Quantidade de cada lavagem – Semana atual</h2>
-    <canvas id="chart"></canvas>
+<header>
+  <div class="logo-left"><img src="logo.png" class="logo"><div class="title">Gráfico Mensal</div></div>
+  <div class="top-actions"><a href="monthly.html"><button class="steel">Voltar</button></a></div>
+  <div class="right-box">
+    <div class="export-wrap">
+      <button class="export-btn steel">Exportar</button>
+      <div class="export-menu">
+        <button id="pptMensalGraf">Exportar PowerPoint</button>
+        <button id="excelMensalGraf">Salvar Excel</button>
+      </div>
+    </div>
   </div>
-</main>
-<footer class="footer">Developed by Lucas L Custodio, V1</footer>
+</header>
+<div class="container">
+  <div id="resumoNumerico" class="card steel">
+    <h3>Resumo do mês</h3>
+    <div class="scroll-x">
+      <table id="tblResumoMensal" class="table">
+        <thead><tr><th>Tipo</th><th>Quantidade</th><th>Prefixos distintos</th><th>Total</th></tr></thead>
+        <tbody><tr><td>-</td><td>-</td><td>-</td><td>-</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div class="col"><label>Mês</label><input type="month" id="mes"></div>
+    </div>
+    <div class="scroll-x">
+      <canvas id="monthlyChart" height="140"></canvas>
+    </div>
+  </div>
+</div>
+<div class="footer">Developed by Lucas L Custodio, V1</div>
+
 <script type="module">
-  import { db, requireAuth } from './js/firebase.js';
-  import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-  await requireAuth();
+import { db, collection, getDocs, query, where } from "./scripts/firebase.js";
+import { monthRangeFrom, downloadFileName } from "./scripts/common.js";
 
-  function weekRange(){
-    const now=new Date(); const day=(now.getDay()+6)%7;
-    const mon=new Date(now); mon.setDate(now.getDate()-day); mon.setHours(0,0,0,0);
-    const sun=new Date(mon); sun.setDate(mon.getDate()+6); sun.setHours(23,59,59,999);
-    return {mon,sun};
-  }
+const ctx = document.getElementById('monthlyChart').getContext('2d');
+let chart;
+document.getElementById('mes').value = new Date().toISOString().slice(0,7);
 
-  async function load(){
-    const {mon,sun}=weekRange();
-    const qy=query(collection(db,'lavagens'), where('createdAt','>=',mon), where('createdAt','<=',sun));
-    const snap=await getDocs(qy);
-    const totals={'Lavagem Simples':0,'Higienização':0,'Exceções':0};
-    snap.forEach(s=>{ const t=s.data().tipo; if(totals[t]!==undefined) totals[t]++; });
-    const labels=Object.keys(totals), data=Object.values(totals);
-    new Chart(document.getElementById('chart'),{type:'bar',data:{labels,datasets:[{label:'Semana atual',data,borderWidth:1}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+async function loadMonth(){
+  const ym = document.getElementById('mes').value;
+  const [y,m] = ym.split('-').map(Number);
+  const start = new Date(y, m-1, 1);
+  const end = new Date(y, m, 0, 23,59,59,999);
+  const q = query(collection(db,"relatorios"), where("data",">=",start), where("data","<=",end));
+  const snap = await getDocs(q);
+  let s=0,h=0,e=0; const prefixSet = new Set();
+  for(const d of snap.docs){
+    const r = d.data();
+    prefixSet.add(r.prefixo);
+    if(r.tipo==="Lavagem Simples") s++; else if(r.tipo==="Higienização") h++; else e++;
   }
-  load();
+  // resumo
+  const total = s+h+e;
+  const tbody = document.querySelector("#tblResumoMensal tbody");
+  tbody.innerHTML = `<tr><td>Simples | Hig | Exc</td><td>${s} | ${h} | ${e}</td><td>${prefixSet.size}</td><td>${total}</td></tr>`;
+
+  // gráfico
+  const data = {
+    labels: ["Lavagem Simples","Higienização","Exceções"],
+    datasets: [{ label:"Qtd no mês", data:[s,h,e] }]
+  };
+  if(chart) chart.destroy();
+  chart = new Chart(ctx, {type:"bar", data,
+    options:{ responsive:true, scales:{ y:{ beginAtZero:true } }, elements:{ bar:{ borderWidth:1 } } }
+  });
+}
+
+document.getElementById('mes').addEventListener('change', loadMonth);
+await loadMonth();
+
+// export
+document.getElementById('pptMensalGraf').onclick = ()=>{
+  const pptx = new PptxGenJS();
+  let slide = pptx.addSlide();
+  slide.addText("Gráfico Mensal", {x:0.5,y:0.3,fontSize:20,bold:true});
+  const canvas = document.getElementById("monthlyChart");
+  slide.addImage({ data: canvas.toDataURL("image/png"), x:0.5,y:1,w:9,h:4.5 });
+  // também inclui tabela resumo
+  const rows = [...document.querySelectorAll("#tblResumoMensal tr")].map(tr=>[...tr.children].map(td=>td.innerText));
+  slide.addTable(rows, {x:0.5,y:5.7,w:9});
+  pptx.writeFile(downloadFileName('mensal')+".pptx");
+};
+document.getElementById('excelMensalGraf').onclick = ()=>{
+  const tbl = document.getElementById("tblResumoMensal");
+  const wb = XLSX.utils.table_to_book(tbl,{sheet:"ResumoMensal"});
+  XLSX.writeFile(wb, downloadFileName('mensal')+".xlsx");
+};
 </script>
 </body>
 </html>

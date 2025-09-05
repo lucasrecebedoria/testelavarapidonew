@@ -1,37 +1,55 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Move Buss • Login</title>
-  <link rel="icon" href="assets/favicon.ico"/>
-  <link rel="stylesheet" href="css/style.css"/>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MOVE BUSS - Login</title>
+  <link rel="icon" href="icon.ico">
+  <link rel="stylesheet" href="styles.css">
 </head>
-<body class="login-body">
-<main class="login-box">
-  <img src="assets/logo.png" alt="logo" width="200"/>
-  <h2>Acesso</h2>
-  <div class="label">Matrícula</div>
-  <input id="matricula" class="input" placeholder="ex: 6266"/>
-  <div class="label">Senha</div>
-  <input id="senha" type="password" class="input" placeholder="••••••••"/>
-  <button id="btnLogin" class="btn green" style="margin-top:12px;width:100%">Entrar</button>
-  <button class="btn" style="margin-top:8px;width:100%" onclick="location.href='register.html'">Novo usuário</button>
-</main>
-<footer class="footer">Developed by Lucas L Custodio, V1</footer>
+<body>
+<header>
+  <div class="logo-left">
+    <img src="logo.png" class="logo" alt="logo">
+    <div class="title">MOVE BUSS • Controle de Lavagem</div>
+  </div>
+</header>
+<div class="container">
+  <div class="card">
+    <h2>Entrar</h2>
+    <div class="row">
+      <div class="col">
+        <label>Matrícula</label>
+        <input id="matricula" placeholder="ex: 55001" />
+      </div>
+      <div class="col">
+        <label>Senha</label>
+        <input id="senha" type="password" />
+      </div>
+    </div>
+    <div class="row">
+      <div class="col"><button id="loginBtn" class="metal">Login</button></div>
+      <div class="col"><a href="register.html"><button class="steel">Registrar novo usuário</button></a></div>
+    </div>
+    <p class="small">O login usa o e-mail <b>matricula@movebuss.local</b>.</p>
+  </div>
+</div>
+<div class="footer">Developed by Lucas L Custodio, V1</div>
+
 <script type="module">
-  import { auth, emailFromMatricula } from './js/firebase.js';
-  import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-  const $=(q)=>document.querySelector(q);
-  document.getElementById('btnLogin').addEventListener('click', async ()=>{
-    const m=$('#matricula').value.trim();
-    const p=$('#senha').value;
-    if(!m||!p) return alert('Informe matrícula e senha.');
-    try{
-      await signInWithEmailAndPassword(auth, emailFromMatricula(m), p);
-      location.href='app.html';
-    }catch(e){ alert('Erro: '+e.message); }
-  });
+import { auth, signInWithEmailAndPassword } from "./scripts/firebase.js";
+
+const matricula = document.getElementById('matricula');
+const senha = document.getElementById('senha');
+document.getElementById('loginBtn').addEventListener('click', async ()=>{
+  const email = `${matricula.value.trim()}@movebuss.local`;
+  try{
+    await signInWithEmailAndPassword(auth, email, senha.value);
+    window.location.href="app.html";
+  }catch(e){
+    alert("Erro no login: "+e.message);
+  }
+});
 </script>
 </body>
 </html>

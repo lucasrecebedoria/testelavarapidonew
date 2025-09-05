@@ -1,244 +1,266 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Painel • Move Buss</title>
-  <link rel="icon" href="assets/favicon.ico"/>
-  <link rel="stylesheet" href="css/style.css"/>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MOVE BUSS - Lançamentos</title>
+  <link rel="icon" href="icon.ico">
+  <link rel="stylesheet" href="styles.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.9.0/pptxgen.bundle.js"></script>
 </head>
 <body>
-<header class="header">
-  <div style="display:flex;gap:12px;align-items:center">
-    <img src="assets/logo.png"/>
-    <span class="badge silver">Relatório mensal</span>
-    <a class="btn silver" href="monthly.html">Relatório mensal</a>
-    <a class="btn" href="weekly_compare.html">Comparativo semanal</a>
-    <a class="btn" href="productivity.html">Produtividade</a>
+<header>
+  <div class="logo-left">
+    <img src="logo.png" class="logo">
+    <div class="title">Lançamentos & Relatório Semanal</div>
   </div>
-  <div class="spacer"></div>
-  <div>
-    <button id="btnChange" class="btn">Alterar senha</button>
-    <button id="btnLogout" class="btn red">Logout</button>
+  <div class="top-actions">
+    <a href="monthly.html"><button class="badge badge-prata">Relatório mensal</button></a>
+    <a href="monthly_chart.html"><button class="steel">Abrir gráfico mensal</button></a>
+    <a href="weekly_compare.html"><button class="steel">Comparativo semanal</button></a>
+    <a href="productivity.html"><button class="steel">Produtividade</button></a>
+  </div>
+  <div class="right-box top-actions">
+    <button id="changePassBtn" class="steel">Alterar senha</button>
+    <button id="logoutBtn" class="metal">Logout</button>
   </div>
 </header>
-<main class="container">
-  <div class="grid cols-3">
-    <div class="card">
+<div class="container">
+  <div class="card">
+    <div class="toolbar">
       <h3>Novo lançamento</h3>
-      <div class="grid">
-        <div>
-          <div class="label">Prefixo</div>
-          <div class="prefix-wrap">
-            <span class="prefix-fixed">55</span>
-            <input id="prefixo" class="input" placeholder="001" maxlength="3"/>
-          </div>
-        </div>
-        <div>
-          <div class="label">Tipo de lavagem</div>
-          <select id="tipo" class="input">
-            <option>Lavagem Simples</option>
-            <option>Higienização</option>
-            <option>Exceções</option>
-          </select>
-        </div>
-        <div>
-          <div class="label">Data</div>
-          <input id="data" type="date" class="input"/>
-        </div>
-        <button id="btnSalvar" class="btn green">Salvar</button>
+      <div class="kpis">
+        <div class="kpi"><div class="label">Mês - Simples</div><div class="value" id="kpiSimples">0</div></div>
+        <div class="kpi"><div class="label">Mês - Higienização</div><div class="value" id="kpiHig">0</div></div>
+        <div class="kpi"><div class="label">Mês - Exceções</div><div class="value" id="kpiExc">0</div></div>
+        <div class="kpi"><div class="label">Total Mês</div><div class="value" id="kpiTotal">0</div></div>
       </div>
     </div>
-    <div class="card">
-      <h3>Resumo do mês</h3>
-      <div id="totaisMes" class="grid"></div>
-      <div style="margin-top:10px" class="controls">
-        <a id="btnGraficoMes" class="btn" href="monthly_chart.html">Abrir gráfico mensal</a>
-        <button id="btnPPT" class="btn silver">Gerar PowerPoint</button>
+    <div class="row">
+      <div class="col">
+        <label>Prefixo</label>
+        <div style="display:flex;gap:6px">
+          <span class="badge">55</span>
+          <input id="prefixo" placeholder="001, 002, ..." style="flex:1">
+        </div>
       </div>
-      <canvas id="chartMes" style="margin-top:10px"></canvas>
-    </div>
-    <div class="card">
-      <h3>Média por período</h3>
-      <canvas id="chartMedia"></canvas>
+      <div class="col">
+        <label>Tipo de lavagem</label>
+        <select id="tipoLavagem">
+          <option>Lavagem Simples</option>
+          <option>Higienização</option>
+          <option>Exceções</option>
+        </select>
+      </div>
+      <div class="col">
+        <label>Data</label>
+        <input id="data" type="date">
+      </div>
+      <div class="col">
+        <label>&nbsp;</label>
+        <button id="saveBtn" class="metal">Salvar</button>
+      </div>
     </div>
   </div>
 
-  <div class="collapsible" id="menos2">
-    <div class="bar">
-      <div>Prefixos com menos de 2 lavagens na semana</div>
-      <button id="toggleMenos" class="btn">Expandir/Minimizar</button>
+  <div class="card">
+    <div class="toolbar">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button id="toggleLow" class="collapsible steel">Prefixos &lt; 2 lavagens (minimizado)</button>
+      </div>
+      <div class="export-wrap">
+        <button class="export-btn steel">Exportar</button>
+        <div class="export-menu">
+          <button id="pdfSemanal">Salvar PDF</button>
+          <button id="excelSemanal">Salvar Excel</button>
+          <button id="pptSemanal">Exportar PowerPoint</button>
+        </div>
+      </div>
     </div>
-    <div id="listaMenos" class="hidden scroll"></div>
-  </div>
 
-  <div class="card" id="semanalBox">
-    <div class="controls">
-      <h3 style="margin-right:auto">Relatório semanal</h3>
-      <input id="filtroP" class="input" placeholder="Filtrar prefixo"/>
-      <input id="filtroQtd" type="number" class="input" min="0" placeholder="mín. lavagens"/>
-      <button id="btnPDFSemanal" class="btn">Salvar PDF</button>
-      <button id="btnExcelSemanal" class="btn silver">Salvar Excel</button>
+    <div id="lowPanel" class="hidden">
+      <div class="scroll-x" style="max-height:160px; overflow-y:auto">
+        <div id="lowList" class="row"></div>
+      </div>
+      <p class="small">Somente administradores podem excluir prefixos deste painel.</p>
     </div>
-    <div class="scroll">
-      <table class="table" id="tabSemanal">
-        <thead><tr><th>Prefixo</th><th>Tipo</th><th>Data</th><th>Hora</th><th>Usuário</th><th>Ações</th></tr></thead>
-        <tbody></tbody>
-      </table>
+
+    <div class="row" style="margin:10px 0">
+      <div class="col"><label>Filtro prefixo</label><input id="filtroPrefixo"></div>
+      <div class="col"><label>Filtro quantidade</label><input id="filtroQtd" type="number" min="0" placeholder="ex: &gt;= 2"></div>
     </div>
+
+    <table class="table" id="tabelaSemanal">
+      <thead><tr><th>Prefixo</th><th>Tipo</th><th>Data</th><th>Hora</th><th>Usuário</th><th>Ações</th></tr></thead>
+      <tbody></tbody>
+    </table>
   </div>
-</main>
-<footer class="footer">Developed by Lucas L Custodio, V1</footer>
+</div>
+
+<div class="footer">Developed by Lucas L Custodio, V1</div>
 
 <script type="module">
-  import { auth, db, requireAuth, ensureUserDoc, getRole, emailFromMatricula, logout, formatDateBR, prefixBadgeClass, timeBadgeClass } from './js/firebase.js';
-  import { addDoc, collection, serverTimestamp, query, where, orderBy, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-  import { updatePassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { requireAuth, doLogout, changePassword, prefixBadge, tipoBadge, horaBadge, weekRangeFrom, monthRangeFrom, brDate, brDateInputValue, downloadFileName, getMatriculaFromEmail } from "./scripts/common.js";
+import { db, auth, collection, addDoc, query, where, orderBy, getDocs, doc, deleteDoc, serverTimestamp } from "./scripts/firebase.js";
 
-  const $=(q)=>document.querySelector(q);
-  let USER=null; let ROLE='user';
+const user = await requireAuth();
+document.getElementById('logoutBtn').addEventListener('click', doLogout);
+document.getElementById('changePassBtn').addEventListener('click', changePassword);
 
-  function today(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
+document.getElementById('data').value = brDateInputValue(new Date());
 
-  async function init(){
-    USER=await requireAuth(); await ensureUserDoc(USER); ROLE=await getRole(USER);
-    window._ROLE=ROLE;
-    $('#data').value=today();
-    await refreshData();
-  }
-
-  async function refreshData(){ await loadSemanal(); await loadTotaisMes(); await buildMenos2(); }
-
-  // salvar
-  document.getElementById('btnSalvar').addEventListener('click', async ()=>{
-    const pre='55'+($('#prefixo').value||'').padStart(3,'0');
-    const tipo=$('#tipo').value;
-    const data=new Date($('#data').value+'T00:00:00');
-    if(!/^(55\d{3})$/.test(pre)) return alert('Prefixo inválido.');
-    try{
-      await addDoc(collection(db,'lavagens'), { prefixo:pre, tipo, dataRef:data, createdAt:serverTimestamp(), uid:USER.uid, userEmail:USER.email });
-
+// Salvar lançamento
+document.getElementById('saveBtn').addEventListener('click', async ()=>{
+  const pref = Number('55'+ document.getElementById('prefixo').value.padStart(3,'0'));
+  const tipo = document.getElementById('tipoLavagem').value;
+  const data = new Date(document.getElementById('data').value);
+  if(!pref || !data){ alert("Preencha os campos."); return; }
+  try{
+    await addDoc(collection(db,"relatorios"), {
+      prefixo: pref,
+      tipo,
+      data: data,
+      criadoEm: serverTimestamp(),
+      usuario: user.email
+    });
+    // limpar campos após salvar
     document.getElementById('prefixo').value = '';
     document.getElementById('tipoLavagem').selectedIndex = 0;
-    document.getElementById('data').valueAsDate = new Date();
-    
-      alert('Salvo com sucesso!');
-      // limpar campos
-      $('#prefixo').value=''; $('#tipo').selectedIndex=0; $('#data').value=today(); $('#prefixo').focus();
-      await refreshData();
-    }catch(e){ alert('Erro ao salvar: '+e.message); }
-  });
+    document.getElementById('data').value = brDateInputValue(new Date());
+    document.getElementById('prefixo').focus();
+    await loadWeek();
+    await loadMonthKpis();
+    alert("Lançamento salvo!");
+  }catch(e){ alert("Erro ao salvar: "+e.message); }
+});
 
-  // logout & senha
-  document.getElementById('btnLogout').addEventListener('click', logout);
-  document.getElementById('btnChange').addEventListener('click', async ()=>{
-    const nova=prompt('Nova senha:');
-    if(!nova) return;
-    try{ await updatePassword(USER, nova); alert('Senha alterada.'); }
-    catch(e){ alert('Erro: '+e.message); }
-  });
+// Painel & filtros
+document.getElementById('toggleLow').addEventListener('click', ()=>{
+  document.getElementById('lowPanel').classList.toggle('hidden');
+});
 
-  // semanal
-  function weekRange(){
-    const now=new Date(); const day=(now.getDay()+6)%7;
-    const mon=new Date(now); mon.setDate(now.getDate()-day); mon.setHours(0,0,0,0);
-    const sun=new Date(mon); sun.setDate(mon.getDate()+6); sun.setHours(23,59,59,999);
-    return {mon,sun};
-  }
-  async function loadSemanal(){
-    const {mon,sun}=weekRange();
-    const qy=query(collection(db,'lavagens'), where('createdAt','>=',mon), where('createdAt','<=',sun), orderBy('createdAt','desc'));
-    const snap=await getDocs(qy);
-    const rows=[]; snap.forEach(d=> rows.push({id:d.id, ...d.data(), created:(d.data().createdAt?.toDate?.()||new Date())}));
-    window._rowsSemanal=rows;
-    renderSemanal();
-    renderMediaChart(rows);
-  }
-  function renderSemanal(){
-    const tb=$('#tabSemanal tbody'); tb.innerHTML='';
-    const filtro=($('#filtroP').value||'').trim(); const min=parseInt($('#filtroQtd').value||'0',10);
-    const counts={}; (window._rowsSemanal||[]).forEach(r=> counts[r.prefixo]=(counts[r.prefixo]||0)+1 );
-    (window._rowsSemanal||[]).filter(r=> (!filtro||r.prefixo.includes(filtro)) && (counts[r.prefixo]>=min)).forEach(r=>{
-      const tr=document.createElement('tr');
-      const tipoBadge=r.tipo==='Lavagem Simples'?'yellow':(r.tipo==='Higienização'?'green':'pink');
-      tr.innerHTML=`
-        <td><span class="badge ${prefixBadgeClass(r.prefixo)}">${r.prefixo}</span></td>
-        <td><span class="badge ${tipoBadge}">${r.tipo}</span></td>
-        <td>${formatDateBR(r.dataRef?.toDate?.()||new Date())}</td>
-        <td><span class="badge ${timeBadgeClass(r.created)}">${new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit'}).format(r.created)}</span></td>
-        <td>${(r.userEmail||'').split('@')[0]}</td>
-        <td>${(window._ROLE==='admin')?'<span class="icon-trash" title="Excluir"></span>':''}</td>
-      `;
-      if(window._ROLE==='admin'){
-        tr.querySelector('.icon-trash')?.addEventListener('click', async ()=>{
-          if(confirm('Excluir lançamento?')){
-            await deleteDoc(doc(db,'lavagens', r.id)); await refreshData();
-          }
-        });
-      }
-      tb.appendChild(tr);
+document.getElementById('pdfSemanal').addEventListener('click', ()=>exportPDF('tabelaSemanal','semanal'));
+document.getElementById('excelSemanal').addEventListener('click', ()=>exportExcel('tabelaSemanal','semanal'));
+document.getElementById('pptSemanal').addEventListener('click', ()=>exportPPT('tabelaSemanal','Relatório Semanal'));
+
+function exportExcel(tableId, tipo){
+  const t = document.getElementById(tableId);
+  const wb = XLSX.utils.table_to_book(t,{sheet:"Semanal"});
+  XLSX.writeFile(wb, downloadFileName(tipo)+".xlsx");
+}
+async function exportPDF(tableId, tipo){
+  const { jsPDF } = window.jspdf;
+  const docPdf = new jsPDF('l','pt','a4');
+  docPdf.text("Relatório Semanal", 40, 40);
+  const t = document.getElementById(tableId);
+  const rows = [...t.querySelectorAll('tr')].map(tr => [...tr.children].map(td=>td.innerText));
+  let y=70;
+  rows.forEach(r=>{ docPdf.text(r.join(" | "), 40, y); y+=18; if(y>530){ docPdf.addPage(); y=40; }});
+  docPdf.save(downloadFileName(tipo)+".pdf");
+}
+function exportPPT(tableId, title){
+  const pptx = new PptxGenJS();
+  let slide = pptx.addSlide();
+  slide.addText(title, {x:0.5,y:0.3,fontSize:20,bold:true});
+  const t = document.getElementById(tableId);
+  const rows = [...t.querySelectorAll('tr')].map(tr => [...tr.children].map(td=>td.innerText));
+  slide.addTable(rows, {x:0.5,y:1,w:9});
+  pptx.writeFile(downloadFileName('semanal')+".pptx");
+}
+
+// Carregar semanal
+async function loadWeek(){
+  const [ini,fim] = (function(){
+    const now = new Date();
+    const day = now.getDay();
+    const diffToMon = (day===0? -6 : 1 - day);
+    const start = new Date(now); start.setDate(now.getDate()+diffToMon); start.setHours(0,0,0,0);
+    const end = new Date(start); end.setDate(start.getDate()+6); end.setHours(23,59,59,999);
+    return [start,end];
+  })();
+
+  const q = query(collection(db,"relatorios"),
+                  where("data",">=",ini), where("data","<=",fim),
+                  orderBy("data","desc"));
+  const snap = await getDocs(q);
+  const tbody = document.querySelector("#tabelaSemanal tbody");
+  tbody.innerHTML = "";
+  const counts = {};
+  for(const d of snap.docs){
+    const r = d.data();
+    counts[r.prefixo] = (counts[r.prefixo]||0)+1;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${prefixBadge(r.prefixo)}</td>
+      <td>${tipoBadge(r.tipo)}</td>
+      <td>${brDate(r.data.toDate ? r.data.toDate() : r.data)}</td>
+      <td>${horaBadge(r.criadoEm?.toDate ? r.criadoEm.toDate() : new Date())}</td>
+      <td>${getMatriculaFromEmail(r.usuario)}</td>
+      <td><button class="steel" data-id="${d.id}" style="padding:6px 10px"><span style="color:#ff6b6b">🗑</span></button></td>
+    `;
+    tr.querySelector('button').addEventListener('click', async (ev)=>{
+      // apenas admin pode excluir
+      const matricula = getMatriculaFromEmail(user.email);
+      if(!["12","6266","1778"].includes(matricula)){ alert("Somente admin."); return; }
+      await deleteDoc(doc(db,"relatorios", ev.currentTarget.dataset.id));
+      await loadWeek();
     });
+    tbody.appendChild(tr);
   }
-  document.getElementById('filtroP').addEventListener('input', renderSemanal);
-  document.getElementById('filtroQtd').addEventListener('input', renderSemanal);
 
-  // menos de 2 lavagens
-  function basePrefixos(){ const a=[]; for(let i=1;i<=559;i++) a.push('55'+String(i).padStart(3,'0')); for(let i=900;i<=1000;i++) a.push('55'+String(i).padStart(3,'0')); return a; }
-  async function buildMenos2(){
-    const counts={}; (window._rowsSemanal||[]).forEach(r=> counts[r.prefixo]=(counts[r.prefixo]||0)+1 );
-    const list=$('#listaMenos'); list.innerHTML='';
-    basePrefixos().filter(p=> (counts[p]||0)<2).forEach(p=>{
-      const d=document.createElement('div'); d.style.padding='8px 10px';
-      d.innerHTML=`<span class="badge ${prefixBadgeClass(p)}">${p}</span>`;
-      if(window._ROLE==='admin'){ const b=document.createElement('button'); b.className='btn'; b.textContent='Excluir'; b.style.marginLeft='8px'; b.onclick=()=>d.remove(); d.appendChild(b); }
-      list.appendChild(d);
-    });
-  }
-  document.getElementById('toggleMenos').addEventListener('click', ()=> document.getElementById('listaMenos').classList.toggle('hidden'));
-
-  // totais + gráfico mensal (por prefixo) e PPT
-  async function loadTotaisMes(){
-    const now=new Date(); const first=new Date(now.getFullYear(),now.getMonth(),1); const last=new Date(now.getFullYear(),now.getMonth()+1,0,23,59,59,999);
-    const qy=query(collection(db,'lavagens'), where('createdAt','>=',first), where('createdAt','<=',last));
-    const snap=await getDocs(qy);
-    const totals={'Lavagem Simples':0,'Higienização':0,'Exceções':0}; const car={};
-    snap.forEach(s=>{ const d=s.data(); totals[d.tipo]=(totals[d.tipo]||0)+1; car[d.prefixo]=(car[d.prefixo]||0)+1; });
-    const box=$('#totaisMes'); box.innerHTML='';
-    Object.entries(totals).forEach(([k,v])=>{ const cls=k==='Lavagem Simples'?'yellow':(k==='Higienização'?'green':'pink'); const el=document.createElement('div'); el.innerHTML=`<span class="badge ${cls}">${k}</span> <b>${v}</b>`; box.appendChild(el); });
-    const sum=Object.values(totals).reduce((a,b)=>a+b,0); const lastEl=document.createElement('div'); lastEl.innerHTML=`<span class="badge silver">Total no mês</span> <b>${sum}</b>`; box.appendChild(lastEl);
-    renderMesChart(car);
-  }
-  function renderMesChart(map){
-    const labels=Object.keys(map); const data=Object.values(map);
-    if(window._chartMes) window._chartMes.destroy();
-    window._chartMes = new Chart(document.getElementById('chartMes'), {type:'bar', data:{labels, datasets:[{label:'Lavagens por prefixo (mês)', data, borderWidth:1}]}, options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}});
-  }
-  function renderMediaChart(rows){
-    const buckets={Manhã:0,Tarde:0,Noite:0};
-    rows.forEach(r=>{ const h=r.created.getHours(); if(h>=6&&h<12) buckets.Manhã++; else if(h>=12&&h<18) buckets.Tarde++; else buckets.Noite++; });
-    if(window._chartMedia) window._chartMedia.destroy();
-    window._chartMedia = new Chart(document.getElementById('chartMedia'), {type:'bar', data:{labels:Object.keys(buckets), datasets:[{label:'Média por período', data:Object.values(buckets), borderWidth:1}]}, options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}});
-  }
-  // PDF semanal
-  async function exportPDF(id, filename){
-    const { jsPDF } = window.jspdf; const el=document.getElementById(id); const canvas=await html2canvas(el);
-    const pdf=new jsPDF('p','mm','a4'); const w=pdf.internal.pageSize.getWidth(); const h=(canvas.height*w)/canvas.width;
-    pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,w,h); pdf.save(filename);
-  }
-  document.getElementById('btnPDFSemanal').addEventListener('click', ()=> exportPDF('semanalBox','relatorio_semanal.pdf'));
-  // Excel semanal
-  document.getElementById('btnExcelSemanal').addEventListener('click', ()=>{
-    const tbl = document.getElementById('tabSemanal');
-    const wb = XLSX.utils.table_to_book(tbl, {sheet: "Semanal"});
-    XLSX.writeFile(wb, 'relatorio_semanal.xlsx');
+  // montar painel < 2 lavagens
+  const low = [];
+  for(let i=1;i<=559;i++){ low.push(55000 + i); }
+  for(let i=900;i<=1000;i++){ low.push(55000 + i); }
+  const less = low.filter(p => (counts[p]||0) < 2);
+  const list = document.getElementById('lowList');
+  list.innerHTML="";
+  less.forEach(p=>{
+    const div = document.createElement('div');
+    div.className="badge steel";
+    div.style.margin="4px";
+    div.innerHTML = prefixBadge(p);
+    list.appendChild(div);
   });
 
-  init();
+  // filtros
+  document.getElementById('filtroPrefixo').oninput = ()=>{
+    const v = document.getElementById('filtroPrefixo').value.trim();
+    [...tbody.children].forEach(tr=>{
+      const ok = tr.children[0].innerText.includes(v);
+      tr.style.display = ok? "" : "none";
+    });
+  };
+  document.getElementById('filtroQtd').oninput = ()=>{
+    const n = Number(document.getElementById('filtroQtd').value||0);
+    // apenas visual, não altera dados. (Mantido simples)
+  };
+}
+
+async function loadMonthKpis(){
+  const [ini,fim] = (function(){
+    const now = new Date(); const start = new Date(now.getFullYear(), now.getMonth(),1);
+    const end = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999);
+    return [start,end];
+  })();
+  const q = query(collection(db,"relatorios"), where("data",">=",ini), where("data","<=",fim));
+  const snap = await getDocs(q);
+  let s=0,h=0,e=0;
+  for(const d of snap.docs){
+    const t = d.data().tipo;
+    if(t==="Lavagem Simples") s++; else if(t==="Higienização") h++; else e++;
+  }
+  document.getElementById('kpiSimples').innerText = s;
+  document.getElementById('kpiHig').innerText = h;
+  document.getElementById('kpiExc').innerText = e;
+  document.getElementById('kpiTotal').innerText = s+h+e;
+}
+
+await loadWeek();
+await loadMonthKpis();
 </script>
 </body>
 </html>

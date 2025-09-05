@@ -1,61 +1,97 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Comparativo Semanal</title>
-  <link rel="icon" href="assets/favicon.ico"/>
-  <link rel="stylesheet" href="css/style.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="icon" href="icon.ico"><link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.9.0/pptxgen.bundle.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-<header class="header">
-  <img src="assets/logo.png"/>
-  <div class="spacer"></div>
-  <a class="btn" href="app.html">Voltar</a>
-</header>
-<main class="container">
-  <div class="card">
-    <div class="controls">
-      <h2 style="margin-right:auto">Comparativo de lavagens por semana</h2>
-      <input id="semanas" type="number" class="input" min="2" value="6" style="max-width:140px"/>
+<header>
+  <div class="logo-left"><img src="logo.png" class="logo"><div class="title">Comparativo Semanal</div></div>
+  <div class="top-actions"><a href="app.html"><button class="steel">Voltar</button></a></div>
+  <div class="right-box">
+    <div class="export-wrap">
+      <button class="export-btn steel">Exportar</button>
+      <div class="export-menu">
+        <button id="pptSemCmp">Exportar PowerPoint</button>
+        <button id="excelSemCmp">Salvar Excel</button>
+      </div>
     </div>
-    <canvas id="chart"></canvas>
   </div>
-</main>
-<footer class="footer">Developed by Lucas L Custodio, V1</footer>
+</header>
+<div class="container">
+  <div id="resumoNumerico" class="card steel">
+    <h3>Resumo da semana</h3>
+    <div class="scroll-x">
+      <table id="tblResumoSem" class="table">
+        <thead><tr><th>Tipo</th><th>Qtd</th><th>Total</th><th>Média por dia</th></tr></thead>
+        <tbody><tr><td>-</td><td>-</td><td>-</td><td>-</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div class="col">
+        <label>Escolher data dentro da semana</label>
+        <input type="date" id="startDate">
+      </div>
+    </div>
+    <div class="scroll-x">
+      <canvas id="cmpChart" height="150"></canvas>
+    </div>
+  </div>
+</div>
+<div class="footer">Developed by Lucas L Custodio, V1</div>
+
 <script type="module">
-  import { db, requireAuth } from './js/firebase.js';
-  import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { db, collection, getDocs, query, where } from "./scripts/firebase.js";
+import { weekRangeFrom, downloadFileName } from "./scripts/common.js";
 
-  async function main(){
-    await requireAuth();
-    const $=(q)=>document.querySelector(q);
+const ctx = document.getElementById('cmpChart').getContext('2d');
+let chart;
+document.getElementById('startDate').value = new Date().toISOString().slice(0,10);
 
-    function weekBlock(weeksAgo){
-      const now=new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const dow=(today.getDay()+6)%7; // 0=segunda
-      const end=new Date(today); end.setDate(today.getDate()-dow - 7*weeksAgo); end.setHours(23,59,59,999);
-      const start=new Date(end); start.setDate(end.getDate()-6); start.setHours(0,0,0,0);
-      return {start,end,label: start.toLocaleDateString('pt-BR')+' - '+end.toLocaleDateString('pt-BR')};
-    }
-
-    async function load(){
-      const n=parseInt($('#semanas').value,10);
-      const labels=[]; const values=[];
-      for(let i=n-1;i>=0;i--){
-        const w=weekBlock(i); labels.push(w.label);
-        const qy=query(collection(db,'lavagens'), where('createdAt','>=',w.start), where('createdAt','<=',w.end));
-        const snap=await getDocs(qy); values.push(snap.size);
-      }
-      if(window._chart) window._chart.destroy();
-      window._chart=new Chart(document.getElementById('chart'),{type:'bar',data:{labels,datasets:[{label:'Lavagens/semana',data:values,borderWidth:1}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
-    }
-    $('#semanas').addEventListener('change', load);
-    load();
+async function loadWeek(){
+  const d = new Date(document.getElementById('startDate').value);
+  const [ini,fim] = weekRangeFrom(d);
+  const q = query(collection(db,"relatorios"), where("data",">=",ini), where("data","<=",fim));
+  const snap = await getDocs(q);
+  let s=0,h=0,e=0;
+  for(const d of snap.docs){
+    const t = d.data().tipo;
+    if(t==="Lavagem Simples") s++; else if(t==="Higienização") h++; else e++;
   }
-  main();
+  const total = s+h+e;
+  const media = (total/7).toFixed(1);
+  const tbody = document.querySelector("#tblResumoSem tbody");
+  tbody.innerHTML = `<tr><td>Simples | Hig | Exc</td><td>${s} | ${h} | ${e}</td><td>${total}</td><td>${media}</td></tr>`;
+
+  const data = { labels:["Lavagem Simples","Higienização","Exceções"], datasets:[{label:"Semana", data:[s,h,e]}]};
+  if(chart) chart.destroy();
+  chart = new Chart(ctx, {type:"bar", data, options:{scales:{y:{beginAtZero:true}}}});
+}
+document.getElementById('startDate').addEventListener('change', loadWeek);
+await loadWeek();
+
+document.getElementById('pptSemCmp').onclick = ()=>{
+  const pptx = new PptxGenJS();
+  let slide = pptx.addSlide();
+  slide.addText("Comparativo Semanal", {x:0.5,y:0.3,fontSize:22,bold:true});
+  const cvs = document.getElementById('cmpChart');
+  slide.addImage({ data:cvs.toDataURL("image/png"), x:0.5,y:1,w:9,h:4.5 });
+  const rows = [...document.querySelectorAll("#tblResumoSem tr")].map(tr=>[...tr.children].map(td=>td.innerText));
+  slide.addTable(rows, {x:0.5,y:5.7,w:9});
+  pptx.writeFile(downloadFileName('semanal')+".pptx");
+};
+document.getElementById('excelSemCmp').onclick = ()=>{
+  const tbl = document.getElementById("tblResumoSem");
+  const wb = XLSX.utils.table_to_book(tbl,{sheet:"ResumoSemanal"});
+  XLSX.writeFile(wb, downloadFileName('semanal')+".xlsx");
+};
 </script>
 </body>
 </html>

@@ -1,52 +1,47 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Registrar • Move Buss</title>
-  <link rel="icon" href="assets/favicon.ico"/>
-  <link rel="stylesheet" href="css/style.css"/>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registrar</title>
+  <link rel="icon" href="icon.ico">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<header class="header">
-  <img src="assets/logo.png"/>
-  <div class="spacer"></div>
-  <a class="btn" href="index.html">Voltar</a>
+<header>
+  <div class="logo-left">
+    <img src="logo.png" class="logo">
+    <div class="title">Registro</div>
+  </div>
 </header>
-<main class="container">
+<div class="container">
   <div class="card">
     <h2>Novo usuário</h2>
-    <div class="grid cols-2">
-      <div>
-        <div class="label">Matrícula</div>
-        <input id="matricula" class="input" placeholder="ex: 6266"/>
-      </div>
-      <div>
-        <div class="label">Senha</div>
-        <input id="senha" type="password" class="input"/>
-      </div>
+    <div class="row">
+      <div class="col"><label>Matrícula</label><input id="matricula"></div>
+      <div class="col"><label>Senha</label><input id="senha" type="password"></div>
     </div>
-    <button id="btn" class="btn green" style="margin-top:14px">Criar</button>
+    <div class="row">
+      <div class="col"><button id="createBtn" class="metal">Criar conta</button></div>
+      <div class="col"><a href="index.html"><button class="steel">Voltar ao login</button></a></div>
+    </div>
   </div>
-</main>
-<footer class="footer">Developed by Lucas L Custodio, V1</footer>
+</div>
+<div class="footer">Developed by Lucas L Custodio, V1</div>
 <script type="module">
-  import { auth, db, emailFromMatricula, ADM_MATRICULAS } from './js/firebase.js';
-  import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-  import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-  const $=(q)=>document.querySelector(q);
-  document.getElementById('btn').addEventListener('click', async ()=>{
-    const m=$('#matricula').value.trim(); const p=$('#senha').value;
-    if(!m||!p) return alert('Preencha os campos.');
-    try{
-      const email=emailFromMatricula(m);
-      const {user}=await createUserWithEmailAndPassword(auth,email,p);
-      const role = ADM_MATRICULAS.includes(m)?'admin':'user';
-      await setDoc(doc(db,'usuarios', user.uid),{matricula:m,email,role, createdAt: serverTimestamp()});
-      alert('Conta criada! Faça login.');
-      location.href='index.html';
-    }catch(e){ alert('Erro: '+e.message); }
-  });
+import { auth, db, createUserWithEmailAndPassword, doc, setDoc } from "./scripts/firebase.js";
+
+document.getElementById('createBtn').addEventListener('click', async ()=>{
+  const m = document.getElementById('matricula').value.trim();
+  const email = `${m}@movebuss.local`;
+  const pass = document.getElementById('senha').value;
+  try{
+    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    await setDoc(doc(db,"usuarios", m), { matricula:m, email, admin: ["12","6266","1778"].includes(m) });
+    alert("Conta criada!");
+    window.location.href="index.html";
+  }catch(e){ alert("Erro ao criar: "+e.message); }
+});
 </script>
 </body>
 </html>

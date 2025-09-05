@@ -1,52 +1,112 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Produtividade</title>
-  <link rel="icon" href="assets/favicon.ico"/>
-  <link rel="stylesheet" href="css/style.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="icon" href="icon.ico"><link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.9.0/pptxgen.bundle.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-<header class="header">
-  <img src="assets/logo.png"/>
-  <div class="spacer"></div>
-  <a class="btn" href="app.html">Voltar</a>
-</header>
-<main class="container">
-  <div class="card">
-    <div class="controls">
-      <h2 style="margin-right:auto">Média de produtividade por período</h2>
-      <select id="scale" class="input" style="max-width:220px">
-        <option value="day">Dia</option>
-        <option value="week">Semana</option>
-        <option value="month" selected>Mês</option>
-      </select>
+<header>
+  <div class="logo-left"><img src="logo.png" class="logo"><div class="title">Produtividade</div></div>
+  <div class="top-actions"><a href="app.html"><button class="steel">Voltar</button></a></div>
+  <div class="right-box">
+    <div class="export-wrap">
+      <button class="export-btn steel">Exportar</button>
+      <div class="export-menu">
+        <button id="pptProd">Exportar PowerPoint</button>
+        <button id="excelProd">Salvar Excel</button>
+      </div>
     </div>
-    <canvas id="chart"></canvas>
   </div>
-</main>
-<footer class="footer">Developed by Lucas L Custodio, V1</footer>
+</header>
+<div class="container">
+  <div id="resumoNumerico" class="card steel">
+    <h3>Resumo de produtividade</h3>
+    <div class="scroll-x">
+      <table id="tblResumoProd" class="table">
+        <thead><tr><th>Período</th><th>Qtd</th><th>Média geral</th><th>Dia mais produtivo</th></tr></thead>
+        <tbody><tr><td>-</td><td>-</td><td>-</td><td>-</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div class="col">
+        <label>Período</label>
+        <select id="periodo">
+          <option value="dia">Dia</option>
+          <option value="semana">Semana</option>
+          <option value="mes">Mês</option>
+        </select>
+      </div>
+      <div class="col"><label>Data referência</label><input type="date" id="dataRef"></div>
+    </div>
+    <div class="scroll-x">
+      <canvas id="prodChart" height="150"></canvas>
+    </div>
+  </div>
+</div>
+<div class="footer">Developed by Lucas L Custodio, V1</div>
+
 <script type="module">
-  import { db, requireAuth } from './js/firebase.js';
-  import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-  await requireAuth();
-  const $=(q)=>document.querySelector(q);
-  async function load(){
-    const scale=$('#scale').value; const now=new Date(); let start;
-    if(scale==='day'){ start=new Date(now.getFullYear(),now.getMonth(),now.getDate()); }
-    if(scale==='week'){ const d=(now.getDay()+6)%7; start=new Date(now); start.setDate(now.getDate()-d); start.setHours(0,0,0,0); }
-    if(scale==='month'){ start=new Date(now.getFullYear(),now.getMonth(),1); }
-    const qy=query(collection(db,'lavagens'), where('createdAt','>=',start), where('createdAt','<=',now));
-    const snap=await getDocs(qy);
-    const b={Manhã:0,Tarde:0,Noite:0};
-    snap.forEach(s=>{ const h=(s.data().createdAt?.toDate?.()||new Date()).getHours(); if(h>=6&&h<12) b.Manhã++; else if(h>=12&&h<18) b.Tarde++; else b.Noite++; });
-    if(window._chart) window._chart.destroy();
-    window._chart = new Chart(document.getElementById('chart'),{type:'bar',data:{labels:Object.keys(b),datasets:[{label:'Média por período',data:Object.values(b),borderWidth:1}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
-  }
-  document.getElementById('scale').addEventListener('change', load);
-  load();
+import { db, collection, getDocs, query, where } from "./scripts/firebase.js";
+import { todayRange, weekRangeFrom, monthRangeFrom, downloadFileName, brDate } from "./scripts/common.js";
+
+const ctx = document.getElementById('prodChart').getContext('2d'); let chart;
+document.getElementById('dataRef').value = new Date().toISOString().slice(0,10);
+
+function groupByDay(docs){
+  const map = new Map();
+  docs.forEach(d=>{
+    const dt = d.data().data.toDate ? d.data().data.toDate() : d.data().data;
+    const k = dt.toISOString().slice(0,10);
+    map.set(k, (map.get(k)||0)+1);
+  });
+  return map;
+}
+
+async function load(){
+  const refDate = new Date(document.getElementById('dataRef').value);
+  const per = document.getElementById('periodo').value;
+  let start,end,label;
+  if(per==="dia"){ [start,end]=todayRange(); label="Dia"; }
+  else if(per==="semana"){ [start,end]=weekRangeFrom(refDate); label="Semana"; }
+  else { [start,end]=monthRangeFrom(refDate); label="Mês"; }
+  const q = query(collection(db,"relatorios"), where("data",">=",start), where("data","<=",end));
+  const snap = await getDocs(q);
+  const days = groupByDay(snap.docs);
+  const labels = [...days.keys()].sort();
+  const values = labels.map(k=>days.get(k));
+  const total = values.reduce((a,b)=>a+b,0);
+  const media = (total / (per==="dia" ? 1 : (per==="semana"? 7 : labels.length||1))).toFixed(1);
+  let diaTop = "-"; if(values.length){ const idx = values.indexOf(Math.max(...values)); diaTop = brDate(new Date(labels[idx])); }
+  const tbody = document.querySelector("#tblResumoProd tbody");
+  tbody.innerHTML = `<tr><td>${label}</td><td>${total}</td><td>${media}</td><td>${diaTop}</td></tr>`;
+  if(chart) chart.destroy();
+  chart = new Chart(ctx, {type:"bar", data:{labels, datasets:[{label:`Produtividade (${label})`, data:values}]}, options:{scales:{y:{beginAtZero:true}}}});
+}
+document.getElementById('periodo').addEventListener('change', load);
+document.getElementById('dataRef').addEventListener('change', load);
+await load();
+
+document.getElementById('pptProd').onclick = ()=>{
+  const pptx = new PptxGenJS(); let slide = pptx.addSlide();
+  slide.addText("Produtividade", {x:0.5,y:0.3,fontSize:22,bold:true});
+  const cvs = document.getElementById('prodChart');
+  slide.addImage({ data:cvs.toDataURL("image/png"), x:0.5,y:1,w:9,h:4.5 });
+  const rows = [...document.querySelectorAll("#tblResumoProd tr")].map(tr=>[...tr.children].map(td=>td.innerText));
+  slide.addTable(rows, {x:0.5,y:5.7,w:9});
+  pptx.writeFile(downloadFileName('produtividade')+".pptx");
+};
+document.getElementById('excelProd').onclick = ()=>{
+  const tbl = document.getElementById("tblResumoProd");
+  const wb = XLSX.utils.table_to_book(tbl,{sheet:"ResumoProdutividade"});
+  XLSX.writeFile(wb, downloadFileName('produtividade')+".xlsx");
+};
 </script>
 </body>
 </html>
