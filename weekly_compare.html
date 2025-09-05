@@ -27,27 +27,35 @@
 <script type="module">
   import { db, requireAuth } from './js/firebase.js';
   import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-  await requireAuth();
-  const $=(q)=>document.querySelector(q);
-  function weekBlock(weeksAgo){
-    const now=new Date(); const today=new Date(now);
-    const dow=(today.getDay()+6)%7; const end=new Date(today); end.setDate(today.getDate()-dow - 7*weeksAgo); end.setHours(23,59,59,999);
-    const start=new Date(end); start.setDate(end.getDate()-6); start.setHours(0,0,0,0);
-    return {start,end,label: start.toLocaleDateString('pt-BR')+' - '+end.toLocaleDateString('pt-BR')};
-  }
-  async function load(){
-    const n=parseInt($('#semanas').value,10);
-    const labels=[]; const values=[];
-    for(let i=n-1;i>=0;i--){
-      const w=weekBlock(i); labels.push(w.label);
-      const qy=query(collection(db,'lavagens'), where('createdAt','>=',w.start), where('createdAt','<=',w.end));
-      const snap=await getDocs(qy); values.push(snap.size);
+
+  async function main(){
+    await requireAuth();
+    const $=(q)=>document.querySelector(q);
+
+    function weekBlock(weeksAgo){
+      const now=new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const dow=(today.getDay()+6)%7; // 0=segunda
+      const end=new Date(today); end.setDate(today.getDate()-dow - 7*weeksAgo); end.setHours(23,59,59,999);
+      const start=new Date(end); start.setDate(end.getDate()-6); start.setHours(0,0,0,0);
+      return {start,end,label: start.toLocaleDateString('pt-BR')+' - '+end.toLocaleDateString('pt-BR')};
     }
-    if(window._chart) window._chart.destroy();
-    window._chart=new Chart(document.getElementById('chart'),{type:'bar',data:{labels,datasets:[{label:'Lavagens/semana',data:values,borderWidth:1}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+
+    async function load(){
+      const n=parseInt($('#semanas').value,10);
+      const labels=[]; const values=[];
+      for(let i=n-1;i>=0;i--){
+        const w=weekBlock(i); labels.push(w.label);
+        const qy=query(collection(db,'lavagens'), where('createdAt','>=',w.start), where('createdAt','<=',w.end));
+        const snap=await getDocs(qy); values.push(snap.size);
+      }
+      if(window._chart) window._chart.destroy();
+      window._chart=new Chart(document.getElementById('chart'),{type:'bar',data:{labels,datasets:[{label:'Lavagens/semana',data:values,borderWidth:1}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+    }
+    $('#semanas').addEventListener('change', load);
+    load();
   }
-  document.getElementById('semanas').addEventListener('change', load);
-  load();
+  main();
 </script>
 </body>
 </html>

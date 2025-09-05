@@ -24,7 +24,7 @@
       <h2 style="margin-right:auto">Relatório Mensal</h2>
       <input id="mes" type="month" class="input"/>
       <input id="filtroPrefixo" class="input" placeholder="Filtrar prefixo (ex.: 55001)" style="max-width:240px"/>
-      <button id="btnGraficoMensal" class="btn">Abrir gráfico mensal</button>
+      <a class="btn" href="monthly_chart.html">Abrir gráfico mensal</a>
     </div>
     <div class="scroll">
       <table class="table" id="tabMensal">
@@ -32,9 +32,6 @@
         <tbody></tbody>
       </table>
     </div>
-  </div>
-  <div class="card">
-    <h3>Gráfico por prefixo</h3>
   </div>
 </main>
 <footer class="footer">Developed by Lucas L Custodio, V1</footer>
@@ -46,7 +43,7 @@
   function defaultMonth(){ const d=new Date(); return d.toISOString().slice(0,7); }
 
   async function load(){
-    const [y,m]=$('#mes').value.split('-').map(Number);
+    const [y,m]=($('#mes').value||defaultMonth()).split('-').map(Number);
     const first=new Date(y, m-1, 1); const last=new Date(y,m,0,23,59,59,999);
     const qy=query(collection(db,'lavagens'), where('createdAt','>=',first), where('createdAt','<=',last));
     const snap=await getDocs(qy);
@@ -55,32 +52,32 @@
     const arr=Object.values(map).sort((a,b)=>a.p.localeCompare(b.p));
     const tb=$('#tabMensal tbody'); tb.innerHTML='';
     arr.forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td><span class="badge ${prefixBadgeClass(r.p)}">${r.p}</span></td><td>${r.qtd}</td><td>${[...new Set(r.dias)].join(', ')}</td>`; tb.appendChild(tr); });
-    renderChart(arr);
   }
-  function renderChart(arr){
-    const labels=arr.map(r=>r.p); const data=arr.map(r=>r.qtd);
-    if(window._chart) window._chart.destroy();
-    window._chart = new Chart(document.getElementById('chart'), {type:'bar', data:{labels, datasets:[{label:'Lavagens no mês', data, borderWidth:1}]}, options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}});
+
+  function filterPrefix(){
+    const txt = ($('#filtroPrefixo').value||'').toLowerCase();
+    const rows = Array.from(document.querySelectorAll('#tabMensal tbody tr'));
+    rows.forEach(tr=>{
+      tr.style.display = tr.innerText.toLowerCase().includes(txt) ? '' : 'none';
+    });
   }
+
   async function exportPDF(){
     const { jsPDF } = window.jspdf; const el=document.getElementById('mensalBox'); const canvas=await html2canvas(el);
     const pdf=new jsPDF('p','mm','a4'); const w=pdf.internal.pageSize.getWidth(); const h=(canvas.height*w)/canvas.width;
     pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,w,h); pdf.save('relatorio_mensal.pdf');
   }
-  document.getElementById('mes').value=defaultMonth(); load();
-  document.getElementById('btnPDF').addEventListener('click', exportPDF);
-  document.getElementById('mes').addEventListener('change', load);
-  document.getElementById('filtroPrefixo').addEventListener('input', ()=>{
-    const txt = document.getElementById('filtroPrefixo').value.trim();
-    const rows = Array.from(document.querySelectorAll('#tabMensal tbody tr'));
-    rows.forEach(tr=>{ const has = tr.innerText.toLowerCase().includes(txt.toLowerCase()); tr.style.display = has? '':'none'; });
-  });
-  document.getElementById('btnExcelMensal').addEventListener('click', ()=>{
+  function exportExcel(){
     const tbl = document.getElementById('tabMensal');
-    const wb = XLSX.utils.table_to_book(tbl, {sheet: 'Mensal'});
+    const wb = XLSX.utils.table_to_book(tbl, {sheet: "Mensal"});
     XLSX.writeFile(wb, 'relatorio_mensal.xlsx');
-  });
-  document.getElementById('btnGraficoMensal').addEventListener('click', ()=>{ location.href='monthly_chart.html'; });
+  }
+
+  document.getElementById('mes').value=defaultMonth(); load();
+  document.getElementById('mes').addEventListener('change', load);
+  document.getElementById('btnPDF').addEventListener('click', exportPDF);
+  document.getElementById('btnExcelMensal').addEventListener('click', exportExcel);
+  document.getElementById('filtroPrefixo').addEventListener('input', filterPrefix);
 </script>
 </body>
 </html>

@@ -58,7 +58,7 @@
       <h3>Resumo do mês</h3>
       <div id="totaisMes" class="grid"></div>
       <div style="margin-top:10px" class="controls">
-        <button id="btnGraficoMes" class="btn">Abrir gráfico mensal</button>
+        <a id="btnGraficoMes" class="btn" href="monthly_chart.html">Abrir gráfico mensal</a>
         <button id="btnPPT" class="btn silver">Gerar PowerPoint</button>
       </div>
       <canvas id="chartMes" style="margin-top:10px"></canvas>
@@ -122,7 +122,15 @@
     if(!/^(55\d{3})$/.test(pre)) return alert('Prefixo inválido.');
     try{
       await addDoc(collection(db,'lavagens'), { prefixo:pre, tipo, dataRef:data, createdAt:serverTimestamp(), uid:USER.uid, userEmail:USER.email });
-      alert('Salvo com sucesso!'); await refreshData();
+
+    document.getElementById('prefixo').value = '';
+    document.getElementById('tipoLavagem').selectedIndex = 0;
+    document.getElementById('data').valueAsDate = new Date();
+    
+      alert('Salvo com sucesso!');
+      // limpar campos
+      $('#prefixo').value=''; $('#tipo').selectedIndex=0; $('#data').value=today(); $('#prefixo').focus();
+      await refreshData();
     }catch(e){ alert('Erro ao salvar: '+e.message); }
   });
 
@@ -193,7 +201,7 @@
   }
   document.getElementById('toggleMenos').addEventListener('click', ()=> document.getElementById('listaMenos').classList.toggle('hidden'));
 
-  // totais + gráfico mensal e PPT
+  // totais + gráfico mensal (por prefixo) e PPT
   async function loadTotaisMes(){
     const now=new Date(); const first=new Date(now.getFullYear(),now.getMonth(),1); const last=new Date(now.getFullYear(),now.getMonth()+1,0,23,59,59,999);
     const qy=query(collection(db,'lavagens'), where('createdAt','>=',first), where('createdAt','<=',last));
@@ -203,13 +211,12 @@
     const box=$('#totaisMes'); box.innerHTML='';
     Object.entries(totals).forEach(([k,v])=>{ const cls=k==='Lavagem Simples'?'yellow':(k==='Higienização'?'green':'pink'); const el=document.createElement('div'); el.innerHTML=`<span class="badge ${cls}">${k}</span> <b>${v}</b>`; box.appendChild(el); });
     const sum=Object.values(totals).reduce((a,b)=>a+b,0); const lastEl=document.createElement('div'); lastEl.innerHTML=`<span class="badge silver">Total no mês</span> <b>${sum}</b>`; box.appendChild(lastEl);
-    renderMesChart(car, totals, sum);
+    renderMesChart(car);
   }
-  function renderMesChart(map, totals, sum){
+  function renderMesChart(map){
     const labels=Object.keys(map); const data=Object.values(map);
     if(window._chartMes) window._chartMes.destroy();
     window._chartMes = new Chart(document.getElementById('chartMes'), {type:'bar', data:{labels, datasets:[{label:'Lavagens por prefixo (mês)', data, borderWidth:1}]}, options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}});
-    window._totaisTipos=totals; window._totalMes=sum;
   }
   function renderMediaChart(rows){
     const buckets={Manhã:0,Tarde:0,Noite:0};
@@ -224,29 +231,13 @@
     pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,w,h); pdf.save(filename);
   }
   document.getElementById('btnPDFSemanal').addEventListener('click', ()=> exportPDF('semanalBox','relatorio_semanal.pdf'));
-
-  // abrir gráfico mensal (já renderizado) + PPT
-  document.getElementById('btnGraficoMes').addEventListener('click', ()=> window.scrollTo({top:0, behavior:'smooth'}));
-  document.getElementById('btnPPT').addEventListener('click', async ()=>{
-    const pptx=new PptxGenJS(); const s=pptx.addSlide();
-    s.addText('Lavagens no mês', {x:0.5,y:0.3,fontSize:22,bold:true});
-    const labels=Object.keys(window._totaisTipos||{}); const values=Object.values(window._totaisTipos||{});
-    s.addText('Tipos de lavagem', {x:0.5,y:0.9,fontSize:16});
-    s.addChart(pptx.ChartType.bar, [{name:'Tipos', labels, values}], {x:0.5,y:1.1,w:9,h:3.5,barWidthPct:35});
-    s.addText('Total no mês: '+(window._totalMes||0), {x:0.5,y:4.8,fontSize:14});
-    await pptx.writeFile({fileName:'grafico_mensal_movebuss.pptx'});
-  });
-
-  
-  // Excel export (Semanal)
+  // Excel semanal
   document.getElementById('btnExcelSemanal').addEventListener('click', ()=>{
     const tbl = document.getElementById('tabSemanal');
     const wb = XLSX.utils.table_to_book(tbl, {sheet: "Semanal"});
     XLSX.writeFile(wb, 'relatorio_semanal.xlsx');
   });
 
-  // filtros
-  window._ROLE=ROLE;
   init();
 </script>
 </body>
