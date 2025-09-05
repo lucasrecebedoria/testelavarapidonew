@@ -1,0 +1,56 @@
+
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Move Buss • Login</title>
+  <link rel="icon" href="assets/favicon.ico"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+  <header class="header">
+    <div class="left">
+      <img src="assets/logo.png" alt="Move Buss"/>
+      <div class="title">Mobilidade Urbana</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="right small">Faça login</div>
+  </header>
+  <main class="container">
+    <div class="grid cols-2">
+      <div class="card brushed">
+        <h2>Entrar</h2>
+        <p class="small">Use sua <b>matrícula</b> e senha.</p>
+        <label>Matrícula</label>
+        <input id="matricula" class="input" placeholder="ex: 6266"/>
+        <label>Senha</label>
+        <input id="senha" type="password" class="input" placeholder="••••••••"/>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn green" id="btnLogin">Login</button>
+          <a href="register.html" class="btn">Registrar novo usuário</a>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Sobre o sistema</h3>
+        <p class="small">Controle de lavagens da frota com relatórios semanais e mensais, gráficos e exportações em PDF/PowerPoint.</p>
+      </div>
+    </div>
+  </main>
+  <footer class="footer">Developed by Lucas L Custodio, V1</footer>
+  <script type="module">
+    import { auth, emailFromMatricula } from './js/firebase.js';
+    import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    const $ = (q)=>document.querySelector(q);
+    $('#btnLogin').addEventListener('click', async ()=>{
+      const m = $('#matricula').value.trim();
+      const p = $('#senha').value;
+      if(!m || !p) return alert('Informe matrícula e senha.');
+      try{
+        await signInWithEmailAndPassword(auth, emailFromMatricula(m), p);
+        window.location.href = "app.html";
+      }catch(e){ alert('Erro ao entrar: '+e.message); }
+    });
+  </script>
+</body>
+</html>

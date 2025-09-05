@@ -1,0 +1,60 @@
+
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Move Buss • Registro</title>
+  <link rel="icon" href="assets/favicon.ico"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+  <header class="header">
+    <div class="left">
+      <img src="assets/logo.png" alt="Move Buss"/>
+      <div class="title">Registro</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="right"><a class="btn" href="index.html">Voltar</a></div>
+  </header>
+  <main class="container">
+    <div class="card brushed">
+      <h2>Criar conta</h2>
+      <div class="grid cols-2">
+        <div>
+          <label>Matrícula</label>
+          <input id="matricula" class="input" placeholder="ex: 6266"/>
+        </div>
+        <div>
+          <label>Senha</label>
+          <input id="senha" type="password" class="input"/>
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <button id="btnCreate" class="btn green">Criar conta</button>
+      </div>
+      <p class="small">O e-mail será salvo como <code>matricula@movebuss.local</code>.</p>
+    </div>
+  </main>
+  <footer class="footer">Developed by Lucas L Custodio, V1</footer>
+  <script type="module">
+    import { app, auth, db, emailFromMatricula, ADM_MATRICULAS } from './js/firebase.js';
+    import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    const $=(q)=>document.querySelector(q);
+    document.getElementById('btnCreate').addEventListener('click', async ()=>{
+      const m = $('#matricula').value.trim();
+      const p = $('#senha').value;
+      if(!m||!p) return alert('Informe matrícula e senha.');
+      try{
+        const email = emailFromMatricula(m);
+        const { user } = await createUserWithEmailAndPassword(auth, email, p);
+        const role = ADM_MATRICULAS.includes(m) ? 'admin' : 'user';
+        await setDoc(doc(db,'usuarios', user.uid), { matricula:m, email, role, createdAt: serverTimestamp() });
+        alert('Conta criada com sucesso! Faça login.');
+        window.location.href = "index.html";
+      }catch(e){ alert('Erro ao criar conta: '+e.message); }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Relatório Mensal</title>
+  <link rel="icon" href="assets/favicon.ico"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="left">
+      <img src="assets/logo.png"/>
+      <a class="btn" href="app.html">Voltar</a>
+    </div>
+    <div class="spacer"></div>
+    <div class="right">
+      <button id="btnPDF" class="btn">Salvar PDF</button>
+      <button id="btnPPT" class="btn silver">Gerar PowerPoint</button>
+    </div>
+  </header>
+  <main class="container">
+    <div class="card" id="mensalCard">
+      <h2>Relatório mensal (por prefixo)</h2>
+      <div class="controls">
+        <input id="filtroMes" type="month" class="input"/>
+      </div>
+      <div class="scroll-area" style="max-height:460px">
+        <table class="table" id="tabelaMensal">
+          <thead><tr><th>Prefixo</th><th>Qtd no mês</th><th>Dias lavados</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Gráfico de lavagens no mês</h3>
+      <canvas id="chartMes"></canvas>
+    </div>
+  </main>
+  <footer class="footer">Developed by Lucas L Custodio, V1</footer>
+  <script type="module">
+    import { auth, db, requireAuth, prefixBadgeClass, formatDateBR } from './js/firebase.js';
+    import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    const $=(q)=>document.querySelector(q);
+    let DATA=[];
+
+    function monthRange(ym){
+      const [y,m]=ym.split('-').map(Number);
+      const first = new Date(y, m-1, 1);
+      const last = new Date(y, m, 0,23,59,59,999);
+      return {first,last};
+    }
+
+    function defaultMonth(){
+      const d = new Date();
+      return d.toISOString().slice(0,7);
+    }
+
+    async function loadMensal(){
+      const {first,last} = monthRange($('#filtroMes').value);
+      const qy = query(collection(db,'lavagens'), where('createdAt','>=', first), where('createdAt','<=', last));
+      const snap = await getDocs(qy);
+      const map={};
+      snap.forEach(s=>{
+        const d = s.data();
+        const key=d.prefixo;
+        const dia = (d.dataRef?.toDate?.() || d.createdAt?.toDate?.() || new Date());
+        map[key]=map[key]||{prefixo:key,qtd:0,dias:[]};
+        map[key].qtd++; map[key].dias.push(formatDateBR(dia));
+      });
+      DATA = Object.values(map).sort((a,b)=>a.prefixo.localeCompare(b.prefixo));
+      renderTable(); renderChart();
+    }
+
+    function renderTable(){
+      const tb = $('#tabelaMensal tbody'); tb.innerHTML='';
+      DATA.forEach(r=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML = \`<td><span class="badge prefix \${prefixBadgeClass(r.prefixo)}">\${r.prefixo}</span></td>
+                         <td>\${r.qtd}</td>
+                         <td>\${[...new Set(r.dias)].join(', ')}</td>\`;
+        tb.appendChild(tr);
+      });
+    }
+
+    function renderChart(){
+      const ctx=document.getElementById('chartMes');
+      if(window._chartMes) window._chartMes.destroy();
+      const labels=DATA.map(d=>d.prefixo);
+      const data=DATA.map(d=>d.qtd);
+      window._chartMes = new Chart(ctx, {type:'bar', data:{labels, datasets:[{label:'Lavagens por prefixo', data, borderWidth:1}]}, options:{responsive:true, scales:{y:{beginAtZero:true}}, plugins:{legend:{display:false}}}});
+    }
+
+    async function exportPDF(){
+      const { jsPDF } = window.jspdf;
+      const el=document.getElementById('mensalCard');
+      const canvas=await html2canvas(el);
+      const pdf=new jsPDF('p','mm','a4');
+      const width=pdf.internal.pageSize.getWidth();
+      const height=(canvas.height*width)/canvas.width;
+      pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,width,height);
+      pdf.save('relatorio_mensal.pdf');
+    }
+
+    async function exportPPT(){
+      const pptx = new PptxGenJS();
+      const slide = pptx.addSlide();
+      slide.addText('Relatório Mensal - Lavagens', {x:0.5,y:0.3,fontSize:22,bold:true});
+      const data = DATA.slice(0,20).map(d=>({name:d.prefixo, labels:[d.prefixo], values:[d.qtd]})); // sample
+      const labels = DATA.map(d=>d.prefixo);
+      const values = DATA.map(d=>d.qtd);
+      slide.addChart(pptx.ChartType.bar, [{name:'Lavagens', labels, values}], {x:0.5,y:1.0,w:9.0,h:4.5, barWidthPct:30});
+      await pptx.writeFile({ fileName: 'relatorio_mensal.pptx' });
+    }
+
+    document.getElementById('btnPDF').onclick=exportPDF;
+    document.getElementById('btnPPT').onclick=exportPPT;
+
+    await requireAuth();
+    $('#filtroMes').value = defaultMonth();
+    loadMensal();
+    $('#filtroMes').addEventListener('change', loadMensal);
+  </script>
+</body>
+</html>

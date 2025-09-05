@@ -1,0 +1,65 @@
+
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Médias por período</title>
+  <link rel="icon" href="assets/favicon.ico"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="left">
+      <img src="assets/logo.png"/>
+      <a class="btn" href="app.html">Voltar</a>
+    </div>
+  </header>
+  <main class="container">
+    <div class="card">
+      <h2>Média de produtividade por período</h2>
+      <div class="controls">
+        <select id="scale" class="input" style="max-width:240px">
+          <option value="day">Dia</option>
+          <option value="week">Semana</option>
+          <option value="month" selected>Mês</option>
+        </select>
+      </div>
+      <canvas id="chartProd"></canvas>
+    </div>
+  </main>
+  <footer class="footer">Developed by Lucas L Custodio, V1</footer>
+  <script type="module">
+    import { db, requireAuth } from './js/firebase.js';
+    import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    await requireAuth();
+    const $=(q)=>document.querySelector(q);
+
+    async function load(){
+      const scale = $('#scale').value;
+      const now=new Date();
+      let start;
+      if(scale==='day'){ start=new Date(now.getFullYear(), now.getMonth(), now.getDate()); }
+      if(scale==='week'){ const day=(now.getDay()+6)%7; start=new Date(now); start.setDate(now.getDate()-day); start.setHours(0,0,0,0); }
+      if(scale==='month'){ start=new Date(now.getFullYear(), now.getMonth(),1); }
+      const qy = query(collection(db,'lavagens'), where('createdAt','>=', start), where('createdAt','<=', now));
+      const snap = await getDocs(qy);
+      const buckets={'Manhã':0,'Tarde':0,'Noite':0};
+      snap.forEach(s=>{
+        const h=(s.data().createdAt?.toDate?.()||new Date()).getHours();
+        if(h>=6&&h<12) buckets['Manhã']++; else if(h>=12&&h<18) buckets['Tarde']++; else buckets['Noite']++;
+      });
+      render(buckets);
+    }
+    function render(b){
+      const labels=Object.keys(b), data=Object.values(b);
+      const ctx=document.getElementById('chartProd');
+      if(window._prod) window._prod.destroy();
+      window._prod = new Chart(ctx,{type:'bar', data:{labels, datasets:[{label:'Média por período', data, borderWidth:1}]}, options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}});
+    }
+    document.getElementById('scale').addEventListener('change', load);
+    load();
+  </script>
+</body>
+</html>
