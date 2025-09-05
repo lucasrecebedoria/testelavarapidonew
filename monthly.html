@@ -6,9 +6,9 @@
   <title>Relatório Mensal</title>
   <link rel="icon" href="assets/favicon.ico"/>
   <link rel="stylesheet" href="css/style.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <header class="header">
@@ -16,12 +16,15 @@
   <div class="spacer"></div>
   <a class="btn" href="app.html">Voltar</a>
   <button id="btnPDF" class="btn">Salvar PDF</button>
+  <button id="btnExcelMensal" class="btn silver">Salvar Excel</button>
 </header>
 <main class="container">
   <div class="card" id="mensalBox">
     <div class="controls">
       <h2 style="margin-right:auto">Relatório Mensal</h2>
       <input id="mes" type="month" class="input"/>
+      <input id="filtroPrefixo" class="input" placeholder="Filtrar prefixo (ex.: 55001)" style="max-width:240px"/>
+      <button id="btnGraficoMensal" class="btn">Abrir gráfico mensal</button>
     </div>
     <div class="scroll">
       <table class="table" id="tabMensal">
@@ -32,7 +35,6 @@
   </div>
   <div class="card">
     <h3>Gráfico por prefixo</h3>
-    <canvas id="chart"></canvas>
   </div>
 </main>
 <footer class="footer">Developed by Lucas L Custodio, V1</footer>
@@ -68,6 +70,17 @@
   document.getElementById('mes').value=defaultMonth(); load();
   document.getElementById('btnPDF').addEventListener('click', exportPDF);
   document.getElementById('mes').addEventListener('change', load);
+  document.getElementById('filtroPrefixo').addEventListener('input', ()=>{
+    const txt = document.getElementById('filtroPrefixo').value.trim();
+    const rows = Array.from(document.querySelectorAll('#tabMensal tbody tr'));
+    rows.forEach(tr=>{ const has = tr.innerText.toLowerCase().includes(txt.toLowerCase()); tr.style.display = has? '':'none'; });
+  });
+  document.getElementById('btnExcelMensal').addEventListener('click', ()=>{
+    const tbl = document.getElementById('tabMensal');
+    const wb = XLSX.utils.table_to_book(tbl, {sheet: 'Mensal'});
+    XLSX.writeFile(wb, 'relatorio_mensal.xlsx');
+  });
+  document.getElementById('btnGraficoMensal').addEventListener('click', ()=>{ location.href='monthly_chart.html'; });
 </script>
 </body>
 </html>

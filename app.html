@@ -10,6 +10,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <header class="header">
@@ -82,6 +83,7 @@
       <input id="filtroP" class="input" placeholder="Filtrar prefixo"/>
       <input id="filtroQtd" type="number" class="input" min="0" placeholder="mín. lavagens"/>
       <button id="btnPDFSemanal" class="btn">Salvar PDF</button>
+      <button id="btnExcelSemanal" class="btn silver">Salvar Excel</button>
     </div>
     <div class="scroll">
       <table class="table" id="tabSemanal">
@@ -233,6 +235,14 @@
     s.addChart(pptx.ChartType.bar, [{name:'Tipos', labels, values}], {x:0.5,y:1.1,w:9,h:3.5,barWidthPct:35});
     s.addText('Total no mês: '+(window._totalMes||0), {x:0.5,y:4.8,fontSize:14});
     await pptx.writeFile({fileName:'grafico_mensal_movebuss.pptx'});
+  });
+
+  
+  // Excel export (Semanal)
+  document.getElementById('btnExcelSemanal').addEventListener('click', ()=>{
+    const tbl = document.getElementById('tabSemanal');
+    const wb = XLSX.utils.table_to_book(tbl, {sheet: "Semanal"});
+    XLSX.writeFile(wb, 'relatorio_semanal.xlsx');
   });
 
   // filtros

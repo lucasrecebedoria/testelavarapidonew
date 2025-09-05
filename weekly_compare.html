@@ -30,8 +30,8 @@
   await requireAuth();
   const $=(q)=>document.querySelector(q);
   function weekBlock(weeksAgo){
-    const now=new Date(); const end=new Date(now);
-    const dow=(end.getDay()+6)%7; end.setDate(end.getDate()-dow - 7*weeksAgo); end.setHours(23,59,59,999);
+    const now=new Date(); const today=new Date(now);
+    const dow=(today.getDay()+6)%7; const end=new Date(today); end.setDate(today.getDate()-dow - 7*weeksAgo); end.setHours(23,59,59,999);
     const start=new Date(end); start.setDate(end.getDate()-6); start.setHours(0,0,0,0);
     return {start,end,label: start.toLocaleDateString('pt-BR')+' - '+end.toLocaleDateString('pt-BR')};
   }

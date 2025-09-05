@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Gráfico Mensal (Semana)</title>
+  <link rel="icon" href="assets/favicon.ico"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<header class="header">
+  <img src="assets/logo.png"/>
+  <div class="spacer"></div>
+  <a class="btn" href="monthly.html">Voltar ao Relatório Mensal</a>
+</header>
+<main class="container">
+  <div class="card">
+    <h2>Quantidade de cada lavagem – Semana atual</h2>
+    <canvas id="chart"></canvas>
+  </div>
+</main>
+<footer class="footer">Developed by Lucas L Custodio, V1</footer>
+<script type="module">
+  import { db, requireAuth } from './js/firebase.js';
+  import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+  await requireAuth();
+
+  function weekRange(){
+    const now=new Date(); const day=(now.getDay()+6)%7;
+    const mon=new Date(now); mon.setDate(now.getDate()-day); mon.setHours(0,0,0,0);
+    const sun=new Date(mon); sun.setDate(mon.getDate()+6); sun.setHours(23,59,59,999);
+    return {mon,sun};
+  }
+
+  async function load(){
+    const {mon,sun}=weekRange();
+    const qy=query(collection(db,'lavagens'), where('createdAt','>=',mon), where('createdAt','<=',sun));
+    const snap=await getDocs(qy);
+    const totals={'Lavagem Simples':0,'Higienização':0,'Exceções':0};
+    snap.forEach(s=>{ const t=s.data().tipo; if(totals[t]!==undefined) totals[t]++; });
+    const labels=Object.keys(totals), data=Object.values(totals);
+    new Chart(document.getElementById('chart'),{type:'bar',data:{labels,datasets:[{label:'Semana atual',data,borderWidth:1}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+  }
+  load();
+</script>
+</body>
+</html>
