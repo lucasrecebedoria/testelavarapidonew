@@ -1,286 +1,242 @@
-
 <!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Move Buss • Painel</title>
+  <title>Painel • Move Buss</title>
   <link rel="icon" href="assets/favicon.ico"/>
   <link rel="stylesheet" href="css/style.css"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 </head>
 <body>
-  <header class="header">
-    <div class="left">
-      <img src="assets/logo.png" alt="Move Buss"/>
-      <span class="badge silver">Relatório mensal</span>
-      <a class="btn silver" href="monthly.html">Relatório mensal</a>
-      <a class="btn" href="monthly_charts.html">Gráfico mensal</a>
-      <a class="btn" href="weekly_compare.html">Comparativo semanal</a>
-      <a class="btn" href="productivity.html">Médias por período</a>
-    </div>
-    <div class="spacer"></div>
-    <div class="right">
-      <button id="btnChangePass" class="btn">Alterar senha</button>
-      <button id="btnLogout" class="btn red">Logout</button>
-    </div>
-  </header>
-  <main class="container">
-    <div class="grid cols-3">
-      <div class="card brushed">
-        <h3>Novo lançamento</h3>
-        <div class="grid cols-3">
-          <div>
-            <label>Prefixo</label>
-            <div class="prefix-wrap">
-              <span class="prefix-fixed">55</span>
-              <input id="prefixo" class="input" placeholder="001" value="001" maxlength="3"/>
-            </div>
-          </div>
-          <div>
-            <label>Tipo de lavagem</label>
-            <select id="tipo" class="input">
-              <option value="Lavagem Simples">Lavagem Simples</option>
-              <option value="Higienização">Higienização</option>
-              <option value="Exceções">Exceções</option>
-            </select>
-          </div>
-          <div>
-            <label>Data</label>
-            <input id="data" type="date" class="input"/>
+<header class="header">
+  <div style="display:flex;gap:12px;align-items:center">
+    <img src="assets/logo.png"/>
+    <span class="badge silver">Relatório mensal</span>
+    <a class="btn silver" href="monthly.html">Relatório mensal</a>
+    <a class="btn" href="weekly_compare.html">Comparativo semanal</a>
+    <a class="btn" href="productivity.html">Produtividade</a>
+  </div>
+  <div class="spacer"></div>
+  <div>
+    <button id="btnChange" class="btn">Alterar senha</button>
+    <button id="btnLogout" class="btn red">Logout</button>
+  </div>
+</header>
+<main class="container">
+  <div class="grid cols-3">
+    <div class="card">
+      <h3>Novo lançamento</h3>
+      <div class="grid">
+        <div>
+          <div class="label">Prefixo</div>
+          <div class="prefix-wrap">
+            <span class="prefix-fixed">55</span>
+            <input id="prefixo" class="input" placeholder="001" maxlength="3"/>
           </div>
         </div>
-        <div style="margin-top:12px"><button id="btnSalvar" class="btn green">Salvar</button></div>
-      </div>
-      <div class="card">
-        <h3>Resumo do mês</h3>
-        <div id="totaisMes" class="grid"></div>
-      </div>
-      <div class="card">
-        <h3>Gráfico de média por período</h3>
-        <canvas id="chartMedia"></canvas>
+        <div>
+          <div class="label">Tipo de lavagem</div>
+          <select id="tipo" class="input">
+            <option>Lavagem Simples</option>
+            <option>Higienização</option>
+            <option>Exceções</option>
+          </select>
+        </div>
+        <div>
+          <div class="label">Data</div>
+          <input id="data" type="date" class="input"/>
+        </div>
+        <button id="btnSalvar" class="btn green">Salvar</button>
       </div>
     </div>
+    <div class="card">
+      <h3>Resumo do mês</h3>
+      <div id="totaisMes" class="grid"></div>
+      <div style="margin-top:10px" class="controls">
+        <button id="btnGraficoMes" class="btn">Abrir gráfico mensal</button>
+        <button id="btnPPT" class="btn silver">Gerar PowerPoint</button>
+      </div>
+      <canvas id="chartMes" style="margin-top:10px"></canvas>
+    </div>
+    <div class="card">
+      <h3>Média por período</h3>
+      <canvas id="chartMedia"></canvas>
+    </div>
+  </div>
 
-    <div class="collapsible" id="painelMenosDuas">
-      <div class="bar">
-        <div class="controls">
-          <span>Prefixos com menos de 2 lavagens na semana</span>
-          <button id="toggleMenosDuas" class="btn">Expandir/Minimizar</button>
-        </div>
-        <div class="small">(somente admins podem excluir prefixos aqui)</div>
-      </div>
-      <div class="scroll-area hidden" id="listaMenosDuas"></div>
+  <div class="collapsible" id="menos2">
+    <div class="bar">
+      <div>Prefixos com menos de 2 lavagens na semana</div>
+      <button id="toggleMenos" class="btn">Expandir/Minimizar</button>
     </div>
+    <div id="listaMenos" class="hidden scroll"></div>
+  </div>
 
-    <div class="card" id="semanalCard">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <h3>Relatório semanal</h3>
-        <div class="controls">
-          <input id="filtroPrefixo" class="input" placeholder="Filtrar prefixo"/>
-          <input id="filtroQtd" class="input" type="number" min="0" placeholder="mín. lavagens"/>
-          <button id="btnPDFSemanal" class="btn">Salvar PDF</button>
-        </div>
-      </div>
-      <div class="scroll-area" style="max-height:400px">
-        <table class="table" id="tabelaSemanal">
-          <thead><tr><th>Prefixo</th><th>Tipo</th><th>Data</th><th>Hora</th><th>Usuário</th><th>Ações</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
+  <div class="card" id="semanalBox">
+    <div class="controls">
+      <h3 style="margin-right:auto">Relatório semanal</h3>
+      <input id="filtroP" class="input" placeholder="Filtrar prefixo"/>
+      <input id="filtroQtd" type="number" class="input" min="0" placeholder="mín. lavagens"/>
+      <button id="btnPDFSemanal" class="btn">Salvar PDF</button>
     </div>
-  </main>
-  <footer class="footer">Developed by Lucas L Custodio, V1</footer>
+    <div class="scroll">
+      <table class="table" id="tabSemanal">
+        <thead><tr><th>Prefixo</th><th>Tipo</th><th>Data</th><th>Hora</th><th>Usuário</th><th>Ações</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+<footer class="footer">Developed by Lucas L Custodio, V1</footer>
 
 <script type="module">
-  import { auth, db, requireAuth, ensureUserDoc, getRole, formatDateBR, timeBadgeClass, prefixBadgeClass } from './js/firebase.js';
+  import { auth, db, requireAuth, ensureUserDoc, getRole, emailFromMatricula, logout, formatDateBR, prefixBadgeClass, timeBadgeClass } from './js/firebase.js';
   import { addDoc, collection, serverTimestamp, query, where, orderBy, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-  import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+  import { updatePassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
   const $=(q)=>document.querySelector(q);
-  let ROLE='user'; let USER=null;
+  let USER=null; let ROLE='user';
 
-  function todayStr(){ const d = new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
+  function today(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
 
   async function init(){
-    USER = await requireAuth();
-    await ensureUserDoc(USER);
-    ROLE = await getRole(USER);
-    $('#data').value = todayStr();
-    renderChartMedia([]);
-    loadSemanal();
-    loadTotaisMes();
-    setupMenosDuas();
+    USER=await requireAuth(); await ensureUserDoc(USER); ROLE=await getRole(USER);
+    window._ROLE=ROLE;
+    $('#data').value=today();
+    await refreshData();
   }
 
-  // Save
-  $('#btnSalvar').addEventListener('click', async()=>{
-    const pre = ('55'+$('#prefixo').value.padStart(3,'0'));
-    const tipo = $('#tipo').value;
-    const data = new Date($('#data').value+'T00:00:00');
+  async function refreshData(){ await loadSemanal(); await loadTotaisMes(); await buildMenos2(); }
+
+  // salvar
+  document.getElementById('btnSalvar').addEventListener('click', async ()=>{
+    const pre='55'+($('#prefixo').value||'').padStart(3,'0');
+    const tipo=$('#tipo').value;
+    const data=new Date($('#data').value+'T00:00:00');
+    if(!/^(55\d{3})$/.test(pre)) return alert('Prefixo inválido.');
     try{
-      await addDoc(collection(db,'lavagens'), {
-        prefixo: pre, tipo, dataRef: data, createdAt: serverTimestamp(), uid: USER.uid, userEmail: USER.email
-      });
-      alert('Lançamento salvo.');
-      loadSemanal(); loadTotaisMes(); setupMenosDuas();
+      await addDoc(collection(db,'lavagens'), { prefixo:pre, tipo, dataRef:data, createdAt:serverTimestamp(), uid:USER.uid, userEmail:USER.email });
+      alert('Salvo com sucesso!'); await refreshData();
     }catch(e){ alert('Erro ao salvar: '+e.message); }
   });
 
-  // Logout & change password
-  $('#btnLogout').addEventListener('click', ()=>{ import('./js/firebase.js').then(m=>m.signOutUI()) });
-  $('#btnChangePass').addEventListener('click', async ()=>{
-    const nova = prompt('Nova senha:');
+  // logout & senha
+  document.getElementById('btnLogout').addEventListener('click', logout);
+  document.getElementById('btnChange').addEventListener('click', async ()=>{
+    const nova=prompt('Nova senha:');
     if(!nova) return;
-    try{ await updatePassword(USER, nova); alert('Senha alterada!'); }
-    catch(e){ alert('Erro ao alterar senha: '+e.message); }
+    try{ await updatePassword(USER, nova); alert('Senha alterada.'); }
+    catch(e){ alert('Erro: '+e.message); }
   });
 
-  // Weekly range (Mon-Sun)
-  function weekRange(d=new Date()){
-    const now = new Date(d);
-    const day = (now.getDay()+6)%7; // Monday=0
-    const monday = new Date(now); monday.setDate(now.getDate()-day); monday.setHours(0,0,0,0);
-    const sunday = new Date(monday); sunday.setDate(monday.getDate()+6); sunday.setHours(23,59,59,999);
-    return {monday, sunday};
+  // semanal
+  function weekRange(){
+    const now=new Date(); const day=(now.getDay()+6)%7;
+    const mon=new Date(now); mon.setDate(now.getDate()-day); mon.setHours(0,0,0,0);
+    const sun=new Date(mon); sun.setDate(mon.getDate()+6); sun.setHours(23,59,59,999);
+    return {mon,sun};
   }
-
   async function loadSemanal(){
-    const {monday,sunday}=weekRange(new Date());
-    const q = query(collection(db,'lavagens'), where('createdAt','>=', monday), where('createdAt','<=', sunday), orderBy('createdAt','desc'));
-    const snap = await getDocs(q);
-    const rows=[]; const counts={};
-    snap.forEach(docx=>{
-      const d = docx.data();
-      const created = d.createdAt?.toDate?.() || new Date();
-      rows.push({id:docx.id, ...d, created});
-      counts[d.prefixo]=(counts[d.prefixo]||0)+1;
-    });
-    renderSemanal(rows);
-    renderChartMedia(rows);
-    window._semanalCounts = counts;
+    const {mon,sun}=weekRange();
+    const qy=query(collection(db,'lavagens'), where('createdAt','>=',mon), where('createdAt','<=',sun), orderBy('createdAt','desc'));
+    const snap=await getDocs(qy);
+    const rows=[]; snap.forEach(d=> rows.push({id:d.id, ...d.data(), created:(d.data().createdAt?.toDate?.()||new Date())}));
+    window._rowsSemanal=rows;
+    renderSemanal();
+    renderMediaChart(rows);
   }
-
-  function renderSemanal(rows){
-    const tb = $('#tabelaSemanal tbody'); tb.innerHTML='';
-    const filtroP = ($('#filtroPrefixo').value||'').trim();
-    const filtroQtd = parseInt($('#filtroQtd').value||'0',10);
-    const counts={};
-    rows.forEach(r=> counts[r.prefixo]=(counts[r.prefixo]||0)+1 );
-    rows.filter(r=> ( !filtroP || r.prefixo.includes(filtroP)) && (counts[r.prefixo] >= filtroQtd))
-      .forEach(r=>{
-        const tr = document.createElement('tr');
-        const badgeC = prefixBadgeClass(r.prefixo);
-        const tipoBadge = r.tipo==='Lavagem Simples'?'yellow':(r.tipo==='Higienização'?'green':'pink');
-        const tClass = timeBadgeClass(r.created);
-        tr.innerHTML = \`
-          <td><span class="badge prefix \${badgeC}">\${r.prefixo}</span></td>
-          <td><span class="badge \${tipoBadge}">\${r.tipo}</span></td>
-          <td>\${formatDateBR(r.dataRef?.toDate?.() || new Date())}</td>
-          <td><span class="badge \${tClass}">\${new Intl.DateTimeFormat('pt-BR', {hour:'2-digit',minute:'2-digit'}).format(r.created)}</span></td>
-          <td>\${(r.userEmail||'').split('@')[0]}</td>
-          <td>\${ROLE==='admin'?'<button class="icon-trash" title="Excluir"></button>':''}</td>
-        \`;
-        if(ROLE==='admin'){
-          tr.querySelector('.icon-trash').addEventListener('click', async()=>{
-            if(confirm('Excluir lançamento?')){
-              await deleteDoc(doc(db,'lavagens', r.id));
-              loadSemanal(); setupMenosDuas(); loadTotaisMes();
-            }
-          });
-        }
-        tb.appendChild(tr);
-      });
-  }
-
-  $('#filtroPrefixo').addEventListener('input', ()=> loadSemanal());
-  $('#filtroQtd').addEventListener('input', ()=> loadSemanal());
-
-  // PDF export
-  async function exportPDF(elId, filename){
-    const { jsPDF } = window.jspdf;
-    const el = document.getElementById(elId);
-    const canvas = await html2canvas(el);
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p','mm','a4');
-    const width = pdf.internal.pageSize.getWidth();
-    const height = (canvas.height*width)/canvas.width;
-    pdf.addImage(imgData,'PNG',0,0,width,height);
-    pdf.save(filename);
-  }
-  document.getElementById('btnPDFSemanal').addEventListener('click', ()=>exportPDF('semanalCard','relatorio_semanal.pdf'));
-
-  // Menos de duas lavagens
-  function basePrefixList(){
-    const arr=[];
-    for(let i=1;i<=559;i++) arr.push(String(i).padStart(3,'0'));
-    for(let i=900;i<=1000;i++) arr.push(String(i).padStart(3,'0'));
-    return arr;
-  }
-  async function setupMenosDuas(){
-    const counts = window._semanalCounts || {};
-    const lista = $('#listaMenosDuas');
-    const collapsed = lista.classList.contains('hidden');
-    lista.innerHTML='';
-    const all = basePrefixList();
-    const filtered = all.filter(s=> (counts['55'+s]||0)<2);
-    filtered.forEach(s=>{
-      const full='55'+s;
-      const div=document.createElement('div');
-      div.style.padding='6px 10px';
-      div.innerHTML = \`<span class="badge prefix \${prefixBadgeClass(full)}">\${full}</span>\`;
-      // admins could "excluir" from list manually
-      if(ROLE==='admin'){
-        const b=document.createElement('button'); b.className='btn'; b.textContent='Excluir'; b.style.marginLeft='8px';
-        b.onclick=()=>{div.remove();};
-        div.appendChild(b);
+  function renderSemanal(){
+    const tb=$('#tabSemanal tbody'); tb.innerHTML='';
+    const filtro=($('#filtroP').value||'').trim(); const min=parseInt($('#filtroQtd').value||'0',10);
+    const counts={}; (window._rowsSemanal||[]).forEach(r=> counts[r.prefixo]=(counts[r.prefixo]||0)+1 );
+    (window._rowsSemanal||[]).filter(r=> (!filtro||r.prefixo.includes(filtro)) && (counts[r.prefixo]>=min)).forEach(r=>{
+      const tr=document.createElement('tr');
+      const tipoBadge=r.tipo==='Lavagem Simples'?'yellow':(r.tipo==='Higienização'?'green':'pink');
+      tr.innerHTML=`
+        <td><span class="badge ${prefixBadgeClass(r.prefixo)}">${r.prefixo}</span></td>
+        <td><span class="badge ${tipoBadge}">${r.tipo}</span></td>
+        <td>${formatDateBR(r.dataRef?.toDate?.()||new Date())}</td>
+        <td><span class="badge ${timeBadgeClass(r.created)}">${new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit'}).format(r.created)}</span></td>
+        <td>${(r.userEmail||'').split('@')[0]}</td>
+        <td>${(window._ROLE==='admin')?'<span class="icon-trash" title="Excluir"></span>':''}</td>
+      `;
+      if(window._ROLE==='admin'){
+        tr.querySelector('.icon-trash')?.addEventListener('click', async ()=>{
+          if(confirm('Excluir lançamento?')){
+            await deleteDoc(doc(db,'lavagens', r.id)); await refreshData();
+          }
+        });
       }
-      lista.appendChild(div);
+      tb.appendChild(tr);
     });
   }
-  document.getElementById('toggleMenosDuas').addEventListener('click', ()=>{
-    document.getElementById('listaMenosDuas').classList.toggle('hidden');
+  document.getElementById('filtroP').addEventListener('input', renderSemanal);
+  document.getElementById('filtroQtd').addEventListener('input', renderSemanal);
+
+  // menos de 2 lavagens
+  function basePrefixos(){ const a=[]; for(let i=1;i<=559;i++) a.push('55'+String(i).padStart(3,'0')); for(let i=900;i<=1000;i++) a.push('55'+String(i).padStart(3,'0')); return a; }
+  async function buildMenos2(){
+    const counts={}; (window._rowsSemanal||[]).forEach(r=> counts[r.prefixo]=(counts[r.prefixo]||0)+1 );
+    const list=$('#listaMenos'); list.innerHTML='';
+    basePrefixos().filter(p=> (counts[p]||0)<2).forEach(p=>{
+      const d=document.createElement('div'); d.style.padding='8px 10px';
+      d.innerHTML=`<span class="badge ${prefixBadgeClass(p)}">${p}</span>`;
+      if(window._ROLE==='admin'){ const b=document.createElement('button'); b.className='btn'; b.textContent='Excluir'; b.style.marginLeft='8px'; b.onclick=()=>d.remove(); d.appendChild(b); }
+      list.appendChild(d);
+    });
+  }
+  document.getElementById('toggleMenos').addEventListener('click', ()=> document.getElementById('listaMenos').classList.toggle('hidden'));
+
+  // totais + gráfico mensal e PPT
+  async function loadTotaisMes(){
+    const now=new Date(); const first=new Date(now.getFullYear(),now.getMonth(),1); const last=new Date(now.getFullYear(),now.getMonth()+1,0,23,59,59,999);
+    const qy=query(collection(db,'lavagens'), where('createdAt','>=',first), where('createdAt','<=',last));
+    const snap=await getDocs(qy);
+    const totals={'Lavagem Simples':0,'Higienização':0,'Exceções':0}; const car={};
+    snap.forEach(s=>{ const d=s.data(); totals[d.tipo]=(totals[d.tipo]||0)+1; car[d.prefixo]=(car[d.prefixo]||0)+1; });
+    const box=$('#totaisMes'); box.innerHTML='';
+    Object.entries(totals).forEach(([k,v])=>{ const cls=k==='Lavagem Simples'?'yellow':(k==='Higienização'?'green':'pink'); const el=document.createElement('div'); el.innerHTML=`<span class="badge ${cls}">${k}</span> <b>${v}</b>`; box.appendChild(el); });
+    const sum=Object.values(totals).reduce((a,b)=>a+b,0); const lastEl=document.createElement('div'); lastEl.innerHTML=`<span class="badge silver">Total no mês</span> <b>${sum}</b>`; box.appendChild(lastEl);
+    renderMesChart(car, totals, sum);
+  }
+  function renderMesChart(map, totals, sum){
+    const labels=Object.keys(map); const data=Object.values(map);
+    if(window._chartMes) window._chartMes.destroy();
+    window._chartMes = new Chart(document.getElementById('chartMes'), {type:'bar', data:{labels, datasets:[{label:'Lavagens por prefixo (mês)', data, borderWidth:1}]}, options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}});
+    window._totaisTipos=totals; window._totalMes=sum;
+  }
+  function renderMediaChart(rows){
+    const buckets={Manhã:0,Tarde:0,Noite:0};
+    rows.forEach(r=>{ const h=r.created.getHours(); if(h>=6&&h<12) buckets.Manhã++; else if(h>=12&&h<18) buckets.Tarde++; else buckets.Noite++; });
+    if(window._chartMedia) window._chartMedia.destroy();
+    window._chartMedia = new Chart(document.getElementById('chartMedia'), {type:'bar', data:{labels:Object.keys(buckets), datasets:[{label:'Média por período', data:Object.values(buckets), borderWidth:1}]}, options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}});
+  }
+  // PDF semanal
+  async function exportPDF(id, filename){
+    const { jsPDF } = window.jspdf; const el=document.getElementById(id); const canvas=await html2canvas(el);
+    const pdf=new jsPDF('p','mm','a4'); const w=pdf.internal.pageSize.getWidth(); const h=(canvas.height*w)/canvas.width;
+    pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,w,h); pdf.save(filename);
+  }
+  document.getElementById('btnPDFSemanal').addEventListener('click', ()=> exportPDF('semanalBox','relatorio_semanal.pdf'));
+
+  // abrir gráfico mensal (já renderizado) + PPT
+  document.getElementById('btnGraficoMes').addEventListener('click', ()=> window.scrollTo({top:0, behavior:'smooth'}));
+  document.getElementById('btnPPT').addEventListener('click', async ()=>{
+    const pptx=new PptxGenJS(); const s=pptx.addSlide();
+    s.addText('Lavagens no mês', {x:0.5,y:0.3,fontSize:22,bold:true});
+    const labels=Object.keys(window._totaisTipos||{}); const values=Object.values(window._totaisTipos||{});
+    s.addText('Tipos de lavagem', {x:0.5,y:0.9,fontSize:16});
+    s.addChart(pptx.ChartType.bar, [{name:'Tipos', labels, values}], {x:0.5,y:1.1,w:9,h:3.5,barWidthPct:35});
+    s.addText('Total no mês: '+(window._totalMes||0), {x:0.5,y:4.8,fontSize:14});
+    await pptx.writeFile({fileName:'grafico_mensal_movebuss.pptx'});
   });
 
-  // Totais do mês (caixa superior direita)
-  async function loadTotaisMes(){
-    const now = new Date();
-    const first = new Date(now.getFullYear(), now.getMonth(),1);
-    const last = new Date(now.getFullYear(), now.getMonth()+1,0,23,59,59,999);
-    const q = query(collection(db,'lavagens'), where('createdAt','>=', first), where('createdAt','<=', last));
-    const snap = await getDocs(q);
-    const totals={ 'Lavagem Simples':0,'Higienização':0,'Exceções':0 };
-    let total=0;
-    snap.forEach(d=>{ totals[d.data().tipo]=(totals[d.data().tipo]||0)+1; total++; });
-    const box = document.getElementById('totaisMes'); box.innerHTML='';
-    Object.entries(totals).forEach(([k,v])=>{
-      const badge = k==='Lavagem Simples'?'yellow':(k==='Higienização'?'green':'pink');
-      const item = document.createElement('div'); item.innerHTML = \`<span class="badge \${badge}">\${k}</span> <b>\${v}</b>\`; box.appendChild(item);
-    });
-    const item = document.createElement('div'); item.innerHTML = \`<span class="badge silver">Total no mês</span> <b>\${total}</b>\`; box.appendChild(item);
-  }
-
-  // Chart media por período (simples: manhã, tarde, noite) sem filtro
-  function renderChartMedia(rows){
-    const ctx=document.getElementById('chartMedia');
-    if(!ctx) return;
-    const buckets={Manhã:0,Tarde:0,Noite:0};
-    rows.forEach(r=>{
-      const h = (r.created||new Date()).getHours();
-      if(h>=6 && h<12) buckets.Manhã++;
-      else if(h>=12 && h<18) buckets.Tarde++;
-      else buckets.Noite++;
-    });
-    if(window._chartMedia){ window._chartMedia.destroy(); }
-    window._chartMedia = new Chart(ctx, {
-      type:'bar',
-      data:{ labels:Object.keys(buckets), datasets:[{ label:'Média por período', data:Object.values(buckets), borderWidth:1 }]},
-      options:{ responsive:true, plugins:{legend:{display:false}}, scales:{x:{}, y:{beginAtZero:true}} }
-    });
-  }
-
+  // filtros
+  window._ROLE=ROLE;
   init();
 </script>
 </body>
